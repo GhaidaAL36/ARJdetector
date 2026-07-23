@@ -1,0 +1,20 @@
+{
+  "trigger_word": "بشكل",
+  "flagged_patterns": [
+    "FAAEIL",
+    "FAEEIL"
+  ],
+  "flagged_suffixes": [
+    "ي",
+    "ية",
+    "ياً"
+  ],
+  "flagged_prefixes": [
+    "م"
+  ],
+  "blacklisted_words": [
+    "عام",
+    "خاص",
+    "تلقائي"
+  ]
+}
