@@ -1,8 +1,8 @@
 {
   "trigger_word": "بشكل",
   "flagged_patterns": [
-    "FAAEIL",
-    "FAEEIL"
+    "1ا23",
+    "12ي3"
   ],
   "flagged_suffixes": [
     "ي",
