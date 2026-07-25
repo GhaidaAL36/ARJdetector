@@ -64,6 +64,12 @@ Install the dependencies:
 pip install -r requirements.txt
 ```
 
+Download the required CAMeL Tools data:
+
+```bash
+camel_data -i morphology-db-msa-r13
+```
+
 ## Running the Application
 
 Using the provided entry point:
