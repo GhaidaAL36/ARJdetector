@@ -4,17 +4,11 @@
     "1ا23",
     "12ي3"
   ],
-  "flagged_suffixes": [
-    "ي",
-    "ية",
-    "ياً"
-  ],
-  "flagged_prefixes": [
-    "م"
-  ],
-  "blacklisted_words": [
+  "whitelisted_words": [
     "عام",
     "خاص",
-    "تلقائي"
-  ]
+    "تلقائي",
+    "مباشر"
+  ],
+  "exclude_nisba": true
 }
