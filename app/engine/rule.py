@@ -12,16 +12,11 @@ def get_pattern(word):
     return word_patterns
 
 
-def get_matches(word, rules, pattern):
-    flag = False
+def matches_flagged_pattern(rules, pattern):
     has_flagged_pattern = any(p in rules["flagged_patterns"] for p in pattern)
+    return has_flagged_pattern
 
-    if (
-        word in rules["blacklisted_words"]
-        or word.endswith(tuple(rules["flagged_suffixes"]))
-        or word.startswith(tuple(rules["flagged_prefixes"]))
-        or has_flagged_pattern
-    ):
-        flag = True
+def matches_nisba_pattern(pattern):
+    has_flagged_pattern = any(p.endswith("ي") for p in pattern)
+    return has_flagged_pattern
 
-    return flag
