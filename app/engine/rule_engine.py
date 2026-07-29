@@ -1,30 +1,36 @@
 from app.rules.rule_loader import reader
 from app.text.preprocessor import preprocess
-from app.engine.rule import get_pattern, get_matches
+from app.engine.rule import get_pattern, matches_flagged_pattern, matches_nisba_pattern
 
 
-def next_word_check(rules, text):
+def find_flagged_words(rules, text):
     tokens = preprocess(text)
-    next_word = []
+    next_words = []
 
     for index, word in tokens:
         if word.endswith(rules["trigger_word"]):
             if index + 1 < len(tokens):
                 token = tokens[index + 1]
-                next_word.append(token[1])
-    return next_word
+                next_words.append(token[1])
+    return next_words
 
 def analyze(path, text):
     rules = reader(path)
-    words = next_word_check(rules, text)
+    words = find_flagged_words(rules, text)
     result = []
     
-    
     for word in words:
+        if word in rules["whitelisted_words"]:
+            continue
+        
         pattern = get_pattern(word)
-        is_match = get_matches(word, rules, pattern)
+        is_nisba = matches_nisba_pattern(pattern)
+        matches_pattern = matches_flagged_pattern(rules, pattern)
+        
+        if (is_nisba):
+            continue
 
-        if (is_match):
+        if (matches_pattern):
             result.append({
                 "flagged": True,
                 "flagged_phrase": rules["trigger_word"] + " " + word,
@@ -38,7 +44,3 @@ def analyze(path, text):
         })
         
     return result
-
-path = "data/rules.json"
-text = "غضب المدير بشكل"
-print(analyze(path, text))
