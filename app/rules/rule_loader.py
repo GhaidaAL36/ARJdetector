@@ -7,4 +7,3 @@ def reader(path):
     parsed_data = json.loads(raw_text)
 
     return parsed_data
-
