@@ -23,6 +23,9 @@ def analyze(path, text):
         if word in rules["whitelisted_words"]:
             continue
         
+        if word.startswith("ال"): 
+            continue
+        
         pattern = get_pattern(word)
         is_nisba = matches_nisba_pattern(pattern)
         matches_pattern = matches_flagged_pattern(rules, pattern)
