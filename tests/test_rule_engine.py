@@ -191,3 +191,25 @@ def test_analyze_no_flagged_words(monkeypatch):
             "message": "clean text"
         }
     ]
+
+def test_whitelist_takes_priority_over_flagged_pattern(monkeypatch):
+    rules = {
+        "trigger_word": "بشكل",
+        "flagged_patterns": ["1ا23"],
+        "whitelisted_words": ["غاضب"]
+    }
+
+    monkeypatch.setattr("app.engine.rule_engine.reader", lambda path: rules)
+    monkeypatch.setattr(
+        "app.engine.rule_engine.find_flagged_words", lambda rules, text: ["غاضب"]
+    )
+    monkeypatch.setattr("app.engine.rule_engine.get_pattern", lambda word: ["1ا23"])
+
+    result = analyze("anything.json", "anything")
+
+    assert result == [
+        {
+            "flagged": False,
+            "message": "clean text"
+        }
+    ]
