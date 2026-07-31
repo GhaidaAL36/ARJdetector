@@ -1,4 +1,4 @@
-from app.engine.rule import get_pattern, matches_flagged_pattern
+from app.engine.rule import get_pattern, matches_flagged_pattern, matches_nisba_pattern
 
 """ get_pattern """
 
@@ -68,3 +68,25 @@ def test_unrecognized_word_pattern():
     pattern = []
     
     assert matches_flagged_pattern(rules, pattern) is False
+    
+""" matches_nisba_pattern test """
+    
+def test_matches_nisba_pattern():
+    patterns = ["م123", "123ي"]
+
+    assert matches_nisba_pattern(patterns) is True
+    
+def test_no_nisba_pattern():
+    patterns = ["1ا23", "م123"]
+
+    assert matches_nisba_pattern(patterns) is False
+    
+def test_one_of_multiple_patterns_is_nisba():
+    patterns = ["1ا23", "م123", "123ي"]
+
+    assert matches_nisba_pattern(patterns) is True
+    
+def test_empty_pattern():
+    patterns = []
+
+    assert matches_nisba_pattern(patterns) is False
