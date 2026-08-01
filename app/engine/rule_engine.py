@@ -16,8 +16,9 @@ def find_flagged_words(rules, text):
     return next_words
 
 
-def analyze(path, text):
+def analyze(path, suggestions_path, text):
     rules = reader(path)
+    special_cases = reader(suggestions_path)
     words = find_flagged_words(rules, text)
     result = []
 
@@ -36,7 +37,7 @@ def analyze(path, text):
             continue
 
         if matches_pattern:
-            result.append(build_match(rules["trigger_word"], word))
+            result.append(build_match(rules["trigger_word"], word, special_cases))
 
     if not result:
         result = clean_text()
