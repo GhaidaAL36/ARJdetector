@@ -16,38 +16,36 @@ def matches_flagged_pattern(rules, pattern):
     has_flagged_pattern = any(p in rules["flagged_patterns"] for p in pattern)
     return has_flagged_pattern
 
+
 def matches_nisba_pattern(pattern):
     has_flagged_pattern = any(p.endswith("ي") for p in pattern)
     return has_flagged_pattern
 
-SPECIAL_CASES = {
-    "كبير": "جداً",
-    "ناجح": "بنجاح",
-}
-
-FIXED_EXPLANATION = "حشو أسلوبي"
 
 def to_accusative_tanween(word):
-    
+
     if word.endswith("ة"):
-        return word[:-1] + "ةً"
-        
-    elif word.endswith("اء"):
-        return word[:-1] + "ءً"
-        
+        return word + "ً"
+
+    elif word.endswith("اء") or word.endswith("أ"):
+        return word + "ً"
+
     elif word.endswith("ء"):
         return word[:-1] + "ئاً"
-        
+
     elif word.endswith("ي"):
-        return word[:-1] + "ياً"
-    
+        return word + "اً"
+
     else:
         return word + "اً"
-    
-def get_suggestion(word):
-    if word in SPECIAL_CASES:
-        return SPECIAL_CASES[word]
+
+
+def get_suggestion(word, special_cases):
+    if word in special_cases:
+        return special_cases[word]
     return to_accusative_tanween(word)
 
+
 def get_explanation():
+    FIXED_EXPLANATION = "حشو أسلوبي"
     return FIXED_EXPLANATION
