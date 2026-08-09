@@ -68,6 +68,7 @@ Download the required CAMeL Tools data:
 
 ```bash
 camel_data -i morphology-db-msa-r13
+camel_data -i disambig-mle-calima-msa-r13
 ```
 
 ## Running the Application
