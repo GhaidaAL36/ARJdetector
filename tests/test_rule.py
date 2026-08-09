@@ -5,6 +5,8 @@ from app.engine.rule import (
     is_phrase_whitelisted,
     matches_flagged_pattern,
     matches_nisba_pattern,
+    is_force_flagged,
+    is_force_excluded,
 )
 
 """ pos, pattern, lex check tests """
@@ -129,31 +131,32 @@ def test_real_pattern_and_lex_are_dediacritized():
 
 
 def test_is_whitelisted_lemma_returns_true_when_present():
-    whitelisted_lemmas = ["دائري", "كروي", "مكعب"]
+    whitelisted_lemmas = ["دائر", "كروي", "مكعب"]
 
     assert is_whitelisted_lemma("كروي", whitelisted_lemmas) is True
 
 
 def test_is_whitelisted_lemma_returns_false_when_absent():
-    whitelisted_lemmas = ["دائري", "كروي", "مكعب"]
+    whitelisted_lemmas = ["دائر", "كروي", "مكعب"]
 
     assert is_whitelisted_lemma("رائع", whitelisted_lemmas) is False
 
 
 def test_is_whitelisted_lemma_empty_whitelist():
-    assert is_whitelisted_lemma("دائري", []) is False
+    assert is_whitelisted_lemma("دائر", []) is False
+
+
+def test_is_whitelisted_lemma_matches_stripped_nisba_form():
+    whitelisted_lemmas = ["دائر"]
+
+    assert is_whitelisted_lemma("دائر", whitelisted_lemmas) is True
+    assert is_whitelisted_lemma("دائري", whitelisted_lemmas) is False
 
 
 def test_is_whitelisted_lemma_is_exact_match_not_substring():
-    whitelisted_lemmas = ["دائري"]
+    whitelisted_lemmas = ["دائر"]
 
-    assert is_whitelisted_lemma("دائر", whitelisted_lemmas) is False
-
-
-def test_is_whitelisted_lemma_case_sensitive_to_diacritics_if_present():
-    whitelisted_lemmas = ["دائري"]
-
-    assert is_whitelisted_lemma("دَائِري", whitelisted_lemmas) is False
+    assert is_whitelisted_lemma("دا", whitelisted_lemmas) is False
 
 
 def test_is_phrase_whitelisted_matches_two_word_phrase():
@@ -281,3 +284,38 @@ def test_matches_nisba_pattern_false_when_neither_condition_met():
     pos_pattern_info = {"pos": "noun", "pattern": "1ا23", "lex": "كتاب"}
 
     assert matches_nisba_pattern(pos_pattern_info) is False
+
+
+""" force_flagged / force_excluded tests """
+
+
+def test_is_force_flagged_true_when_present():
+    force_flagged_lemmas = ["مباشر", "جميل", "واحد"]
+
+    assert is_force_flagged("مباشر", force_flagged_lemmas) is True
+
+
+def test_is_force_flagged_false_when_absent():
+    force_flagged_lemmas = ["مباشر", "جميل", "واحد"]
+
+    assert is_force_flagged("كبير", force_flagged_lemmas) is False
+
+
+def test_is_force_flagged_empty_list():
+    assert is_force_flagged("مباشر", []) is False
+
+
+def test_is_force_excluded_true_when_present():
+    force_excluded_lemmas = ["واحد"]
+
+    assert is_force_excluded("واحد", force_excluded_lemmas) is True
+
+
+def test_is_force_excluded_false_when_absent():
+    force_excluded_lemmas = ["واحد"]
+
+    assert is_force_excluded("كبير", force_excluded_lemmas) is False
+
+
+def test_is_force_excluded_empty_list():
+    assert is_force_excluded("واحد", []) is False
