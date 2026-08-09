@@ -5,9 +5,13 @@ from app.engine.rule import (
     matches_flagged_pattern,
     matches_nisba_pattern,
     is_phrase_whitelisted,
-    is_whitelisted_lemma
+    is_whitelisted_lemma,
+    is_force_flagged,
+    is_force_excluded,
 )
 from app.engine.match import build_match, clean_text
+
+MAX_SKIP_TOKENS = 3
 
 
 def find_flagged_words(rules, whitelist, text):
@@ -16,20 +20,25 @@ def find_flagged_words(rules, whitelist, text):
 
     for index, word in tokens:
         if word.endswith(rules["trigger_word"]):
-            if index + 1 >= len(tokens):
-                continue
-            
-            next_word = tokens[index + 1][1]
-            if not next_word.isalpha():
+            target_idx = None
+            for offset in range(1, MAX_SKIP_TOKENS + 1):
+                candidate_idx = index + offset
+                if candidate_idx >= len(tokens):
+                    break
+                if tokens[candidate_idx][1].isalpha():
+                    target_idx = candidate_idx
+                    break
+
+            if target_idx is None:
                 continue
 
             is_phrase, _ = is_phrase_whitelisted(
-                tokens, index + 1, whitelist["whitelisted_phrases"]
+                tokens, target_idx, whitelist["whitelisted_phrases"]
             )
             if is_phrase:
                 continue
 
-            flagged_indices.append(index + 1)
+            flagged_indices.append(target_idx)
 
     return tokens, flagged_indices
 
@@ -46,22 +55,25 @@ def analyze(path, whitelist_path, text):
 
         for index in flagged_indices:
             word = tokens[index][1]
-            pos_pattern_info = disambiguated[index]
+            info = disambiguated[index]
 
-            if is_whitelisted_lemma(pos_pattern_info["lex"], whitelist["whitelisted_lemmas"]):
+            if is_whitelisted_lemma(info["lex"], whitelist["whitelisted_lemmas"]):
                 continue
 
-            pattern = pos_pattern_info["pattern"]
+            if is_force_excluded(info["lex"], whitelist["force_excluded_lemmas"]):
+                continue
+
+            if is_force_flagged(info["lex"], whitelist["force_flagged_lemmas"]):
+                result.append(build_match(rules["trigger_word"], word))
+                continue
+
+            pattern = info["pattern"]
             if pattern.startswith("ال"):
                 pattern = pattern[2:]
-            pos_pattern_info = {**pos_pattern_info, "pattern": pattern}
+            info = {**info, "pattern": pattern}
 
-            is_nisba = matches_nisba_pattern(pos_pattern_info)
-            matches_pattern = matches_flagged_pattern(rules, pos_pattern_info)
-
-            if is_nisba or matches_pattern:
+            if matches_nisba_pattern(info) or matches_flagged_pattern(rules, info):
                 result.append(build_match(rules["trigger_word"], word))
-
     if not result:
         result = clean_text()
 
