@@ -1,2 +1,2 @@
 rules_path = "data/rules.json"
-suggestions_path = "data/suggestions.json"
+whitelist_path = "data/whitelist.json"
