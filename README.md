@@ -1,5 +1,8 @@
 # ARJ Detector
 
+Rule-based Arabic stylistic redundancy detector, targeting "Aranjiyyah"
+(العَرَنْجِيَّة) — overuse of `بشكل + adjective` constructions where a direct
+adverb or مفعول مطلق would be more natural Arabic (e.g. "بشكل رسمي" → "رسمياً").
 
 ## Project Structure
 
@@ -14,10 +17,13 @@ ARJdetector/
 │   │   └── rule_loader.py
 │   ├── text/
 │   │   └── preprocessor.py
-│   └── main.py
+│   ├── config.py
+│   ├── main.py
+│   └── schemas.py
 ├── data/
-│   └── rules.json
-├── test/
+│   ├── rules.json
+│   └── whitelist.json
+├── tests/
 ├── run.py
 ├── requirements.txt
 └── README.md
@@ -103,4 +109,28 @@ ReDoc:
 
 ```
 http://127.0.0.1:8000/redoc
+```
+
+## Usage
+
+Send a `POST` request to `/analyze` with the text to check:
+
+```bash
+curl -X POST http://127.0.0.1:8000/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"text": "الجو جميل بشكل رائع اليوم"}'
+```
+
+Request body:
+
+```json
+{
+  "text": "الجو جميل بشكل رائع اليوم"
+}
+```
+
+## Running Tests
+
+```bash
+pytest tests/
 ```
