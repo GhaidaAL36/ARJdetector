@@ -1,49 +1,63 @@
 from camel_tools.morphology.database import MorphologyDB
 from camel_tools.morphology.analyzer import Analyzer
 from camel_tools.utils.dediac import dediac_ar
+from camel_tools.disambig.mle import MLEDisambiguator
+
+_mle = None
 
 
-def get_pattern(word):
-    db = MorphologyDB.builtin_db()
-    analyzer = Analyzer(db)
-
-    analyses = analyzer.analyze(word)
-    word_patterns = [dediac_ar(a.get("pattern", "")) for a in analyses]
-    return word_patterns
+def _get_mle():
+    global _mle
+    if _mle is None:
+        _mle = MLEDisambiguator.pretrained()
+    return _mle
 
 
-def matches_flagged_pattern(rules, pattern):
-    has_flagged_pattern = any(p in rules["flagged_patterns"] for p in pattern)
-    return has_flagged_pattern
+def get_pos_and_pattern_in_context(tokens):
+    mle = _get_mle()
+    words = [word for _, word in tokens]
+    disambiguated = mle.disambiguate(words)
+
+    results = []
+    for entry in disambiguated:
+        top_analysis = entry.analyses[0].analysis
+        pos = top_analysis.get("pos", "")
+        pattern = dediac_ar(top_analysis.get("pattern", ""))
+        lex = dediac_ar(top_analysis.get("lex", ""))
+        results.append({"pos": pos, "pattern": pattern, "lex": lex})
+
+    return results
 
 
-def matches_nisba_pattern(pattern):
-    has_flagged_pattern = any(p.endswith("ي") for p in pattern)
-    return has_flagged_pattern
+def matches_flagged_pattern(rules, pos_pattern_info):
+    return (
+        pos_pattern_info["pattern"] in rules["flagged_patterns"]
+        and pos_pattern_info["pos"] == "adj"
+    )
 
 
-def to_accusative_tanween(word):
-
-    if word.endswith("ة"):
-        return word + "ً"
-
-    elif word.endswith("اء") or word.endswith("أ"):
-        return word + "ً"
-
-    elif word.endswith("ء"):
-        return word[:-1] + "ئاً"
-
-    elif word.endswith("ي"):
-        return word + "اً"
-
-    else:
-        return word + "اً"
+def matches_nisba_pattern(pos_pattern_info):
+    return (
+        pos_pattern_info["pattern"].endswith("ي") and pos_pattern_info["pos"] == "adj"
+    )
 
 
-def get_suggestion(word, special_cases):
-    if word in special_cases:
-        return special_cases[word]
-    return to_accusative_tanween(word)
+def is_whitelisted_lemma(lemma, whitelisted_lemmas):
+    return lemma in whitelisted_lemmas
+
+
+def is_phrase_whitelisted(tokens, start_index, whitelisted_phrases):
+    for phrase in whitelisted_phrases:
+        phrase_words = phrase.split()
+        n = len(phrase_words)
+        candidate = [w for _, w in tokens[start_index : start_index + n]]
+        if candidate == phrase_words:
+            return True, n
+    return False, 1
+
+
+def get_suggestion():
+    return "يمكن حذف «بشكل» أو استبدالها بصياغة أكثر طبيعية"
 
 
 def get_explanation():
