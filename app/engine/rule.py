@@ -56,6 +56,14 @@ def is_phrase_whitelisted(tokens, start_index, whitelisted_phrases):
     return False, 1
 
 
+def is_force_flagged(lex, force_flagged_lemmas):
+    return lex in force_flagged_lemmas
+
+
+def is_force_excluded(lex, force_excluded_lemmas):
+    return lex in force_excluded_lemmas
+
+
 def get_suggestion():
     return "يمكن حذف «بشكل» أو استبدالها بصياغة أكثر طبيعية"
 
