@@ -1,7 +1,7 @@
 from app.rules.rule_loader import reader
 from app.text.preprocessor import preprocess
+from app.engine.analysis import get_pos_and_pattern_in_context
 from app.engine.rule import (
-    get_pos_and_pattern_in_context,
     matches_flagged_pattern,
     matches_nisba_pattern,
     is_phrase_whitelisted,
