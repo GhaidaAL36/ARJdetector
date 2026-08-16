@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from app.engine.rule_engine import analyze
 from app.schemas import AnalyzeRequest
+from app.engine.rule_engine import analyze
 from app.config import rules_path, whitelist_path
 
 app = FastAPI()
