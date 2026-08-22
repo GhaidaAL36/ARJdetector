@@ -5,7 +5,7 @@ from app.engine.morphology import (
     generate_root_candidates,
     verb_matches_measure,
 )
-from app.engine.verb_dictionary import lookup_verbs_by_root
+from app.engine.dictionary import lookup_verbs_by_root
 
 TRUSTED_DERIVATION_STATUSES = {
     "forced",
