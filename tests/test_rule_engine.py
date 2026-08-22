@@ -1,194 +1,185 @@
+import pytest
 from unittest.mock import patch
 
-from app.engine.rule_engine import find_flagged_words, analyze
+from app.config import rules_path, whitelist_path
+from app.engine.rule_engine import (
+    find_bshakl_matches,
+    find_tam_matches,
+    masdar_target_index,
+    next_target_index,
+    analyze,
+)
 
-""" find flagged words tests """
-
-
-def test_find_flagged_words_single_trigger_no_skip_needed():
-    fake_tokens = [(0, "كتب"), (1, "المقال"), (2, "بشكل"), (3, "جميل")]
-    rules = {"trigger_word": "بشكل"}
-    whitelist = {"whitelisted_phrases": []}
-
-    with patch("app.engine.rule_engine.preprocess", return_value=fake_tokens), patch(
-        "app.engine.rule_engine.is_phrase_whitelisted", return_value=(False, 1)
-    ):
-
-        tokens, flagged_indices = find_flagged_words(
-            rules, whitelist, "كتب المقال بشكل جميل"
-        )
-
-    assert flagged_indices == [3]
+""" next_target_index tests """
 
 
-def test_find_flagged_words_skips_single_non_alpha_token():
-    fake_tokens = [(0, "بشكل"), (1, "100%"), (2, "عادل")]
-    rules = {"trigger_word": "بشكل"}
-    whitelist = {"whitelisted_phrases": []}
+def test_next_target_index_takes_the_following_word():
+    tokens = [(0, "كتب"), (1, "بشكل"), (2, "جميل")]
 
-    with patch("app.engine.rule_engine.preprocess", return_value=fake_tokens), patch(
-        "app.engine.rule_engine.is_phrase_whitelisted", return_value=(False, 1)
-    ) as mock_phrase:
-
-        tokens, flagged_indices = find_flagged_words(rules, whitelist, "بشكل 100% عادل")
-
-    assert flagged_indices == [2]
-    mock_phrase.assert_called_once_with(fake_tokens, 2, [])
+    assert next_target_index(tokens, 1) == 2
 
 
-def test_find_flagged_words_skips_up_to_max_limit():
-    fake_tokens = [(0, "بشكل"), (1, "1"), (2, "2"), (3, "عادل")]
-    rules = {"trigger_word": "بشكل"}
-    whitelist = {"whitelisted_phrases": []}
+def test_next_target_index_skips_non_alphabetic_tokens():
+    tokens = [(0, "بشكل"), (1, "100%"), (2, "عادل")]
 
-    with patch("app.engine.rule_engine.preprocess", return_value=fake_tokens), patch(
-        "app.engine.rule_engine.is_phrase_whitelisted", return_value=(False, 1)
-    ):
-
-        tokens, flagged_indices = find_flagged_words(rules, whitelist, "text")
-
-    assert flagged_indices == [3]
+    assert next_target_index(tokens, 0) == 2
 
 
-def test_find_flagged_words_gives_up_beyond_max_skip_limit():
-    fake_tokens = [(0, "بشكل"), (1, "1"), (2, "2"), (3, "3"), (4, "4"), (5, "عادل")]
-    rules = {"trigger_word": "بشكل"}
-    whitelist = {"whitelisted_phrases": []}
+def test_next_target_index_gives_up_beyond_the_skip_limit():
+    tokens = [(0, "بشكل"), (1, "1"), (2, "2"), (3, "3"), (4, "4"), (5, "عادل")]
 
-    with patch("app.engine.rule_engine.preprocess", return_value=fake_tokens), patch(
-        "app.engine.rule_engine.is_phrase_whitelisted"
-    ) as mock_phrase:
-
-        tokens, flagged_indices = find_flagged_words(rules, whitelist, "text")
-
-    assert flagged_indices == []
-    mock_phrase.assert_not_called()
+    assert next_target_index(tokens, 0) is None
 
 
-def test_find_flagged_words_all_non_alpha_until_end_of_tokens():
-    fake_tokens = [(0, "كتب"), (1, "بشكل"), (2, "."), (3, "!")]
-    rules = {"trigger_word": "بشكل"}
-    whitelist = {"whitelisted_phrases": []}
+def test_next_target_index_none_when_trigger_is_last():
+    tokens = [(0, "كتب"), (1, "المقال"), (2, "بشكل")]
 
-    with patch("app.engine.rule_engine.preprocess", return_value=fake_tokens), patch(
-        "app.engine.rule_engine.is_phrase_whitelisted"
-    ) as mock_phrase:
-
-        tokens, flagged_indices = find_flagged_words(rules, whitelist, "كتب بشكل .!")
-
-    assert flagged_indices == []
-    mock_phrase.assert_not_called()
+    assert next_target_index(tokens, 2) is None
 
 
-def test_find_flagged_words_waw_prefix_variant():
-    fake_tokens = [(0, "تحسن"), (1, "الوضع"), (2, "وبشكل"), (3, "ملحوظ")]
-    rules = {"trigger_word": "بشكل"}
-    whitelist = {"whitelisted_phrases": []}
+def test_next_target_index_skips_a_dash_aside():
+    """«بشكل - ولله الحمد - كبير» — the target is كبير, not ولله."""
+    tokens = list(enumerate(["بشكل", "-", "ولله", "الحمد", "-", "كبير"]))
 
-    with patch("app.engine.rule_engine.preprocess", return_value=fake_tokens), patch(
-        "app.engine.rule_engine.is_phrase_whitelisted", return_value=(False, 1)
-    ):
-
-        tokens, flagged_indices = find_flagged_words(
-            rules, whitelist, "تحسن الوضع وبشكل ملحوظ"
-        )
-
-    assert flagged_indices == [3]
+    assert next_target_index(tokens, 0) == 5
 
 
-def test_find_flagged_words_fa_prefix_variant():
-    fake_tokens = [(0, "تغير"), (1, "الأمر"), (2, "فبشكل"), (3, "مفاجئ")]
-    rules = {"trigger_word": "بشكل"}
-    whitelist = {"whitelisted_phrases": []}
+def test_next_target_index_skips_a_bracketed_aside():
+    tokens = list(enumerate(["بشكل", "(", "تقريبا", ")", "كامل"]))
 
-    with patch("app.engine.rule_engine.preprocess", return_value=fake_tokens), patch(
-        "app.engine.rule_engine.is_phrase_whitelisted", return_value=(False, 1)
-    ):
-
-        tokens, flagged_indices = find_flagged_words(
-            rules, whitelist, "تغير الأمر فبشكل مفاجئ"
-        )
-
-    assert flagged_indices == [3]
+    assert next_target_index(tokens, 0) == 4
 
 
-def test_find_flagged_words_multiple_triggers_one_with_skip():
-    fake_tokens = [
-        (0, "الجو"),
-        (1, "جميل"),
-        (2, "بشكل"),
-        (3, "رائع"),
-        (4, "اليوم"),
-        (5, "وبشكل"),
-        (6, "50"),
-        (7, "كبير"),
+def test_next_target_index_skips_a_comma_aside():
+    tokens = list(enumerate(["بشكل", "،", "فيما", "يبدو", "،", "جيد"]))
+
+    assert next_target_index(tokens, 0) == 5
+
+
+def test_next_target_index_treats_an_unclosed_delimiter_as_plain_punctuation():
+    """A lone comma is not an aside — «بشكل ، كبير» still reaches كبير."""
+    tokens = list(enumerate(["بشكل", "،", "كبير"]))
+
+    assert next_target_index(tokens, 0) == 2
+
+
+""" find_bshakl_matches tests """
+
+
+def _bshakl_rules():
+    return {"trigger_word": "بشكل"}
+
+
+def _bshakl_whitelist(**overrides):
+    base = {
+        "whitelisted_lemmas": [],
+        "whitelisted_phrases": [],
+        "force_excluded_lemmas": [],
+    }
+    base.update(overrides)
+    return base
+
+
+def _descriptor(lex="جميل", pos="adj", prc0="0"):
+    return {"pos": pos, "pattern": "", "lex": lex, "prc0": prc0, "prc1": "0", "prc2": "0"}
+
+
+def test_find_bshakl_matches_flags_a_descriptor():
+    tokens = [(0, "كتب"), (1, "بشكل"), (2, "جميل")]
+    disambiguated = [_descriptor(pos="verb"), _descriptor(pos="noun"), _descriptor()]
+
+    matches = find_bshakl_matches(
+        _bshakl_rules(), _bshakl_whitelist(), tokens, disambiguated
+    )
+
+    assert [m["flagged_phrase"] for _, m in matches] == ["بشكل جميل"]
+
+
+def test_find_bshakl_matches_keeps_the_prefix_in_the_phrase():
+    """«وبشكل ملحوظ» should report what the text actually says."""
+    tokens = [(0, "تحسن"), (1, "وبشكل"), (2, "ملحوظ")]
+    disambiguated = [_descriptor(pos="verb"), _descriptor(pos="noun"), _descriptor()]
+
+    matches = find_bshakl_matches(
+        _bshakl_rules(), _bshakl_whitelist(), tokens, disambiguated
+    )
+
+    assert matches[0][1]["flagged_phrase"] == "وبشكل ملحوظ"
+
+
+def test_find_bshakl_matches_skips_whitelisted_shape_lemma():
+    tokens = [(0, "بشكل"), (1, "دائري")]
+    disambiguated = [_descriptor(pos="noun"), _descriptor(lex="دائر")]
+
+    matches = find_bshakl_matches(
+        _bshakl_rules(), _bshakl_whitelist(whitelisted_lemmas=["دائر"]),
+        tokens, disambiguated,
+    )
+
+    assert matches == []
+
+
+def test_find_bshakl_matches_skips_whitelisted_phrase():
+    tokens = [(0, "بشكل"), (1, "شبه"), (2, "منحرف")]
+    disambiguated = [_descriptor(pos="noun"), _descriptor(), _descriptor()]
+
+    matches = find_bshakl_matches(
+        _bshakl_rules(), _bshakl_whitelist(whitelisted_phrases=["شبه منحرف"]),
+        tokens, disambiguated,
+    )
+
+    assert matches == []
+
+
+def test_find_bshakl_matches_skips_force_excluded_lemma():
+    tokens = [(0, "بشكل"), (1, "واحد")]
+    disambiguated = [_descriptor(pos="noun"), _descriptor(lex="واحد")]
+
+    matches = find_bshakl_matches(
+        _bshakl_rules(), _bshakl_whitelist(force_excluded_lemmas=["واحد"]),
+        tokens, disambiguated,
+    )
+
+    assert matches == []
+
+
+def test_find_bshakl_matches_skips_non_descriptor():
+    tokens = [(0, "بشكل"), (1, "من")]
+    disambiguated = [_descriptor(pos="noun"), _descriptor(pos="prep")]
+
+    matches = find_bshakl_matches(
+        _bshakl_rules(), _bshakl_whitelist(), tokens, disambiguated
+    )
+
+    assert matches == []
+
+
+def test_find_bshakl_matches_finds_every_trigger():
+    tokens = list(enumerate(["بشكل", "رائع", "و", "وبشكل", "كبير"]))
+    disambiguated = [
+        _descriptor(pos="noun"), _descriptor(), _descriptor(pos="conj"),
+        _descriptor(pos="noun"), _descriptor(),
     ]
-    rules = {"trigger_word": "بشكل"}
-    whitelist = {"whitelisted_phrases": []}
 
-    with patch("app.engine.rule_engine.preprocess", return_value=fake_tokens), patch(
-        "app.engine.rule_engine.is_phrase_whitelisted", return_value=(False, 1)
-    ):
+    matches = find_bshakl_matches(
+        _bshakl_rules(), _bshakl_whitelist(), tokens, disambiguated
+    )
 
-        tokens, flagged_indices = find_flagged_words(
-            rules, whitelist, "الجو جميل بشكل رائع اليوم وبشكل 50 كبير"
-        )
-
-    assert flagged_indices == [3, 7]
+    assert [index for index, _ in matches] == [0, 3]
 
 
-def test_find_flagged_words_whitelisted_phrase_still_checked_at_correct_target_idx():
-    fake_tokens = [(0, "هذا"), (1, "الخبز"), (2, "بشكل"), (3, "شبه"), (4, "منحرف")]
-    rules = {"trigger_word": "بشكل"}
-    whitelist = {"whitelisted_phrases": ["شبه منحرف"]}
+def test_find_bshakl_matches_no_trigger_present():
+    tokens = [(0, "الجو"), (1, "جميل")]
+    disambiguated = [_descriptor(pos="noun"), _descriptor()]
 
-    with patch("app.engine.rule_engine.preprocess", return_value=fake_tokens), patch(
-        "app.engine.rule_engine.is_phrase_whitelisted", return_value=(True, 2)
-    ) as mock_phrase:
+    matches = find_bshakl_matches(
+        _bshakl_rules(), _bshakl_whitelist(), tokens, disambiguated
+    )
 
-        tokens, flagged_indices = find_flagged_words(
-            rules, whitelist, "هذا الخبز بشكل شبه منحرف"
-        )
-
-    mock_phrase.assert_called_once_with(fake_tokens, 3, ["شبه منحرف"])
-    assert flagged_indices == []
+    assert matches == []
 
 
-def test_find_flagged_words_trigger_is_last_word_no_crash():
-    fake_tokens = [(0, "كتب"), (1, "المقال"), (2, "بشكل")]
-    rules = {"trigger_word": "بشكل"}
-    whitelist = {"whitelisted_phrases": []}
-
-    with patch("app.engine.rule_engine.preprocess", return_value=fake_tokens), patch(
-        "app.engine.rule_engine.is_phrase_whitelisted"
-    ) as mock_phrase:
-
-        tokens, flagged_indices = find_flagged_words(
-            rules, whitelist, "كتب المقال بشكل"
-        )
-
-    mock_phrase.assert_not_called()
-    assert flagged_indices == []
-
-
-def test_find_flagged_words_no_trigger_present():
-    fake_tokens = [(0, "الجو"), (1, "جميل"), (2, "اليوم")]
-    rules = {"trigger_word": "بشكل"}
-    whitelist = {"whitelisted_phrases": []}
-
-    with patch("app.engine.rule_engine.preprocess", return_value=fake_tokens), patch(
-        "app.engine.rule_engine.is_phrase_whitelisted"
-    ) as mock_phrase:
-
-        tokens, flagged_indices = find_flagged_words(
-            rules, whitelist, "الجو جميل اليوم"
-        )
-
-    mock_phrase.assert_not_called()
-    assert flagged_indices == []
-
-
-""" analyze tests """
+""" analyze — orchestration """
 
 
 RULES_PATH = "fake/rules.json"
@@ -199,288 +190,547 @@ def _base_whitelist(**overrides):
     base = {
         "whitelisted_lemmas": [],
         "whitelisted_phrases": [],
-        "force_flagged_lemmas": [],
         "force_excluded_lemmas": [],
     }
     base.update(overrides)
     return base
 
 
-def test_analyze_flags_word_via_nisba_pattern():
-    rules = {"trigger_word": "بشكل", "flagged_patterns": []}
-    whitelist = _base_whitelist()
-    tokens = [(0, "كتب"), (1, "بشكل"), (2, "جميل")]
-    flagged_indices = [2]
+def test_analyze_returns_clean_response_for_empty_text():
+    with patch("app.engine.rule_engine.reader", side_effect=[{}, {}]), patch(
+        "app.engine.rule_engine.preprocess", return_value=[]
+    ), patch("app.engine.rule_engine.get_pos_and_pattern_in_context") as mock_disambig:
 
-    with patch("app.engine.rule_engine.reader", side_effect=[rules, whitelist]), patch(
-        "app.engine.rule_engine.find_flagged_words",
-        return_value=(tokens, flagged_indices),
-    ), patch(
-        "app.engine.rule_engine.get_pos_and_pattern_in_context",
-        return_value=[None, None, {"pos": "adj", "pattern": "12ي3", "lex": "جميل"}],
-    ), patch(
-        "app.engine.rule_engine.is_whitelisted_lemma", return_value=False
-    ), patch(
-        "app.engine.rule_engine.is_force_excluded", return_value=False
-    ), patch(
-        "app.engine.rule_engine.is_force_flagged", return_value=False
-    ), patch(
-        "app.engine.rule_engine.matches_nisba_pattern", return_value=True
-    ), patch(
-        "app.engine.rule_engine.matches_flagged_pattern", return_value=False
-    ), patch(
-        "app.engine.rule_engine.build_match", return_value="MATCH_RESULT"
-    ) as mock_build, patch(
-        "app.engine.rule_engine.clean_text"
-    ) as mock_clean:
+        result = analyze(RULES_PATH, WHITELIST_PATH, "")
 
-        result = analyze(RULES_PATH, WHITELIST_PATH, "كتب بشكل جميل")
-
-    assert result == ["MATCH_RESULT"]
-    mock_build.assert_called_once_with("بشكل", "جميل")
-    mock_clean.assert_not_called()
+    assert result == {"flagged": False, "matches": []}
+    mock_disambig.assert_not_called()
 
 
-def test_analyze_skips_whitelisted_lemma_before_force_checks():
-    rules = {"trigger_word": "بشكل", "flagged_patterns": []}
-    whitelist = _base_whitelist(whitelisted_lemmas=["دائر"])
-    tokens = [(0, "كتب"), (1, "بشكل"), (2, "دائري")]
-    flagged_indices = [2]
-
-    with patch("app.engine.rule_engine.reader", side_effect=[rules, whitelist]), patch(
-        "app.engine.rule_engine.find_flagged_words",
-        return_value=(tokens, flagged_indices),
-    ), patch(
-        "app.engine.rule_engine.get_pos_and_pattern_in_context",
-        return_value=[None, None, {"pos": "adj", "pattern": "12ي3", "lex": "دائر"}],
-    ), patch(
-        "app.engine.rule_engine.is_whitelisted_lemma", return_value=True
-    ) as mock_whitelist, patch(
-        "app.engine.rule_engine.is_force_excluded"
-    ) as mock_excluded, patch(
-        "app.engine.rule_engine.is_force_flagged"
-    ) as mock_flagged, patch(
-        "app.engine.rule_engine.matches_nisba_pattern"
-    ) as mock_nisba, patch(
-        "app.engine.rule_engine.matches_flagged_pattern"
-    ) as mock_pattern, patch(
-        "app.engine.rule_engine.build_match"
-    ) as mock_build, patch(
-        "app.engine.rule_engine.clean_text", return_value="CLEAN"
-    ):
-
-        result = analyze(RULES_PATH, WHITELIST_PATH, "كتب بشكل دائري")
-
-    mock_whitelist.assert_called_once_with("دائر", ["دائر"])
-    mock_excluded.assert_not_called()
-    mock_flagged.assert_not_called()
-    mock_nisba.assert_not_called()
-    mock_pattern.assert_not_called()
-    mock_build.assert_not_called()
-    assert result == "CLEAN"
-
-
-def test_analyze_force_excluded_skips_before_pattern_check():
-    rules = {"trigger_word": "بشكل", "flagged_patterns": ["وا23"]}
-    whitelist = _base_whitelist(force_excluded_lemmas=["واحد"])
-    tokens = [(0, "كتب"), (1, "بشكل"), (2, "واحد")]
-    flagged_indices = [2]
-
-    with patch("app.engine.rule_engine.reader", side_effect=[rules, whitelist]), patch(
-        "app.engine.rule_engine.find_flagged_words",
-        return_value=(tokens, flagged_indices),
-    ), patch(
-        "app.engine.rule_engine.get_pos_and_pattern_in_context",
-        return_value=[None, None, {"pos": "adj", "pattern": "وا23", "lex": "واحد"}],
-    ), patch(
-        "app.engine.rule_engine.is_whitelisted_lemma", return_value=False
-    ), patch(
-        "app.engine.rule_engine.is_force_excluded", return_value=True
-    ) as mock_excluded, patch(
-        "app.engine.rule_engine.is_force_flagged"
-    ) as mock_flagged, patch(
-        "app.engine.rule_engine.matches_nisba_pattern"
-    ) as mock_nisba, patch(
-        "app.engine.rule_engine.matches_flagged_pattern"
-    ) as mock_pattern, patch(
-        "app.engine.rule_engine.build_match"
-    ) as mock_build, patch(
-        "app.engine.rule_engine.clean_text", return_value="CLEAN"
-    ):
-
-        result = analyze(RULES_PATH, WHITELIST_PATH, "كتب بشكل واحد")
-
-    mock_excluded.assert_called_once_with("واحد", ["واحد"])
-    mock_flagged.assert_not_called()
-    mock_nisba.assert_not_called()
-    mock_pattern.assert_not_called()
-    mock_build.assert_not_called()
-    assert result == "CLEAN"
-
-
-def test_analyze_force_flagged_bypasses_pos_and_pattern_checks():
-    rules = {"trigger_word": "بشكل", "flagged_patterns": []}
-    whitelist = _base_whitelist(force_flagged_lemmas=["مباشر"])
-    tokens = [(0, "تحدث"), (1, "بشكل"), (2, "مباشر")]
-    flagged_indices = [2]
-
-    with patch("app.engine.rule_engine.reader", side_effect=[rules, whitelist]), patch(
-        "app.engine.rule_engine.find_flagged_words",
-        return_value=(tokens, flagged_indices),
-    ), patch(
-        "app.engine.rule_engine.get_pos_and_pattern_in_context",
-        return_value=[None, None, {"pos": "noun", "pattern": "م12ا3", "lex": "مباشر"}],
-    ), patch(
-        "app.engine.rule_engine.is_whitelisted_lemma", return_value=False
-    ), patch(
-        "app.engine.rule_engine.is_force_excluded", return_value=False
-    ), patch(
-        "app.engine.rule_engine.is_force_flagged", return_value=True
-    ) as mock_flagged, patch(
-        "app.engine.rule_engine.matches_nisba_pattern"
-    ) as mock_nisba, patch(
-        "app.engine.rule_engine.matches_flagged_pattern"
-    ) as mock_pattern, patch(
-        "app.engine.rule_engine.build_match", return_value="MATCH_RESULT"
-    ) as mock_build, patch(
-        "app.engine.rule_engine.clean_text"
-    ):
-
-        result = analyze(RULES_PATH, WHITELIST_PATH, "تحدث بشكل مباشر")
-
-    mock_flagged.assert_called_once_with("مباشر", ["مباشر"])
-    mock_nisba.assert_not_called()
-    mock_pattern.assert_not_called()
-    mock_build.assert_called_once_with("بشكل", "مباشر")
-    assert result == ["MATCH_RESULT"]
-
-
-def test_analyze_no_flagged_indices_skips_disambiguator_entirely():
-    rules = {"trigger_word": "بشكل", "flagged_patterns": []}
-    whitelist = _base_whitelist()
+def test_analyze_skips_the_model_when_no_trigger_and_no_tam_rule():
+    """The بشكل scan is a plain string test, so with no بشكل in the text and
+    no تمّ rule configured there is nothing worth loading CAMeL for."""
+    rules = {"trigger_word": "بشكل"}
     tokens = [(0, "الجو"), (1, "جميل")]
-    flagged_indices = []
 
-    with patch("app.engine.rule_engine.reader", side_effect=[rules, whitelist]), patch(
-        "app.engine.rule_engine.find_flagged_words",
-        return_value=(tokens, flagged_indices),
-    ), patch(
+    with patch(
+        "app.engine.rule_engine.reader", side_effect=[rules, _base_whitelist()]
+    ), patch("app.engine.rule_engine.preprocess", return_value=tokens), patch(
         "app.engine.rule_engine.get_pos_and_pattern_in_context"
-    ) as mock_disambig, patch(
-        "app.engine.rule_engine.clean_text", return_value="CLEAN"
-    ):
+    ) as mock_disambig:
 
         result = analyze(RULES_PATH, WHITELIST_PATH, "الجو جميل")
 
+    assert result == {"flagged": False, "matches": []}
     mock_disambig.assert_not_called()
-    assert result == "CLEAN"
 
 
-def test_analyze_strips_al_prefix_from_pattern_before_matching():
-    rules = {"trigger_word": "بشكل", "flagged_patterns": ["12ي3"]}
-    whitelist = _base_whitelist()
-    tokens = [(0, "كتب"), (1, "بشكل"), (2, "الكبير")]
-    flagged_indices = [2]
+def test_analyze_still_runs_the_model_for_tam_when_no_bshakl_present():
+    """تمّ is matched on lemma, so it cannot be ruled out before the model."""
+    rules = {"trigger_word": "بشكل", "tam_trigger_lex": "تم"}
+    tokens = [(0, "تم"), (1, "إغلاق")]
 
-    with patch("app.engine.rule_engine.reader", side_effect=[rules, whitelist]), patch(
-        "app.engine.rule_engine.find_flagged_words",
-        return_value=(tokens, flagged_indices),
+    with patch(
+        "app.engine.rule_engine.reader", side_effect=[rules, _base_whitelist()]
+    ), patch("app.engine.rule_engine.preprocess", return_value=tokens), patch(
+        "app.engine.rule_engine.get_pos_and_pattern_in_context", return_value=[{}, {}]
+    ) as mock_disambig, patch(
+        "app.engine.rule_engine.find_bshakl_matches", return_value=[]
     ), patch(
-        "app.engine.rule_engine.get_pos_and_pattern_in_context",
-        return_value=[None, None, {"pos": "adj", "pattern": "ال12ي3", "lex": "كبير"}],
-    ), patch(
-        "app.engine.rule_engine.is_whitelisted_lemma", return_value=False
-    ), patch(
-        "app.engine.rule_engine.is_force_excluded", return_value=False
-    ), patch(
-        "app.engine.rule_engine.is_force_flagged", return_value=False
-    ), patch(
-        "app.engine.rule_engine.matches_nisba_pattern", return_value=False
-    ) as mock_nisba, patch(
-        "app.engine.rule_engine.matches_flagged_pattern", return_value=True
-    ) as mock_flagged, patch(
-        "app.engine.rule_engine.build_match", return_value="MATCH_RESULT"
-    ), patch(
-        "app.engine.rule_engine.clean_text"
+        "app.engine.rule_engine.find_tam_matches", return_value=[]
     ):
 
-        analyze(RULES_PATH, WHITELIST_PATH, "كتب بشكل الكبير")
+        analyze(RULES_PATH, WHITELIST_PATH, "تم إغلاق")
 
-    called_info = mock_flagged.call_args[0][1]
-    assert called_info["pattern"] == "12ي3"
-
-    called_info_nisba = mock_nisba.call_args[0][0]
-    assert called_info_nisba["pattern"] == "12ي3"
+    mock_disambig.assert_called_once()
 
 
-def test_analyze_no_match_returns_clean_text():
-    rules = {"trigger_word": "بشكل", "flagged_patterns": []}
-    whitelist = _base_whitelist()
-    tokens = [(0, "كتب"), (1, "بشكل"), (2, "شيء")]
-    flagged_indices = [2]
+def test_analyze_merges_both_rules_in_reading_order():
+    rules = {"trigger_word": "بشكل", "tam_trigger_lex": "تم"}
+    tokens = [(0, "تم"), (1, "إغلاق"), (2, "بشكل"), (3, "رائع")]
 
-    with patch("app.engine.rule_engine.reader", side_effect=[rules, whitelist]), patch(
-        "app.engine.rule_engine.find_flagged_words",
-        return_value=(tokens, flagged_indices),
-    ), patch(
+    with patch(
+        "app.engine.rule_engine.reader", side_effect=[rules, _base_whitelist()]
+    ), patch("app.engine.rule_engine.preprocess", return_value=tokens), patch(
         "app.engine.rule_engine.get_pos_and_pattern_in_context",
-        return_value=[None, None, {"pos": "noun", "pattern": "123", "lex": "شيء"}],
+        return_value=[{}, {}, {}, {}],
     ), patch(
-        "app.engine.rule_engine.is_whitelisted_lemma", return_value=False
+        "app.engine.rule_engine.find_bshakl_matches", return_value=[(2, "BSHAKL")]
     ), patch(
-        "app.engine.rule_engine.is_force_excluded", return_value=False
-    ), patch(
-        "app.engine.rule_engine.is_force_flagged", return_value=False
-    ), patch(
-        "app.engine.rule_engine.matches_nisba_pattern", return_value=False
-    ), patch(
-        "app.engine.rule_engine.matches_flagged_pattern", return_value=False
-    ), patch(
-        "app.engine.rule_engine.build_match"
-    ) as mock_build, patch(
-        "app.engine.rule_engine.clean_text", return_value="CLEAN"
+        "app.engine.rule_engine.find_tam_matches", return_value=[(0, "TAM")]
     ):
 
-        result = analyze(RULES_PATH, WHITELIST_PATH, "كتب بشكل شيء")
+        result = analyze(RULES_PATH, WHITELIST_PATH, "تم إغلاق بشكل رائع")
 
-    mock_build.assert_not_called()
-    assert result == "CLEAN"
+    assert result == {"flagged": True, "matches": ["TAM", "BSHAKL"]}
 
 
-def test_analyze_multiple_flagged_words_mixed_paths():
-    rules = {"trigger_word": "بشكل", "flagged_patterns": []}
-    whitelist = _base_whitelist(force_flagged_lemmas=["مباشر"])
-    tokens = [
-        (0, "تحدث"), (1, "بشكل"), (2, "مباشر"),
-        (3, "وكتب"), (4, "بشكل"), (5, "جميل"),
+def test_analyze_wraps_matches_in_the_response_shape():
+    rules = {"trigger_word": "بشكل"}
+    tokens = [(0, "بشكل"), (1, "رائع")]
+
+    with patch(
+        "app.engine.rule_engine.reader", side_effect=[rules, _base_whitelist()]
+    ), patch("app.engine.rule_engine.preprocess", return_value=tokens), patch(
+        "app.engine.rule_engine.get_pos_and_pattern_in_context", return_value=[{}, {}]
+    ), patch(
+        "app.engine.rule_engine.find_bshakl_matches", return_value=[(0, "MATCH")]
+    ), patch(
+        "app.engine.rule_engine.find_tam_matches", return_value=[]
+    ):
+
+        result = analyze(RULES_PATH, WHITELIST_PATH, "بشكل رائع")
+
+    assert result == {"flagged": True, "matches": ["MATCH"]}
+
+
+
+""" find_tam_matches tests """
+
+
+def _tam_rules(**overrides):
+    base = {"trigger_word": "بشكل", "flagged_patterns": [], "tam_trigger_lex": "تم"}
+    base.update(overrides)
+    return base
+
+
+def _tam_whitelist(**overrides):
+    base = _base_whitelist()
+    base.update(
+        {
+            "force_derived_verbs": {},
+            "force_intransitive_verbs": [],
+            "force_not_masdar": [],
+            "force_intransitive_masdars": [],
+        }
+    )
+    base.update(overrides)
+    return base
+
+
+def test_find_tam_matches_flags_transitive_masdar():
+    tokens = [(0, "تم"), (1, "إغلاق"), (2, "الباب")]
+    disambiguated = [
+        {"pos": "verb", "pattern": "1َ2َّ", "lex": "تم"},
+        {"pos": "noun", "pattern": "إِ12ا3", "lex": "إغلاق"},
+        {"pos": "noun", "pattern": "ال123", "lex": "باب"},
     ]
-    flagged_indices = [2, 5]
 
-    disambig_by_index = {
-        2: {"pos": "noun", "pattern": "م12ا3", "lex": "مباشر"},
-        5: {"pos": "adj", "pattern": "123ي", "lex": "جميل"},
-    }
+    with patch(
+        "app.engine.rule_engine.derive_base_verb", return_value=("أغلق", "unique_match")
+    ), patch("app.engine.rule_engine.is_transitive_verb", return_value=True):
 
-    def fake_disambiguate(tokens_arg):
-        return [disambig_by_index.get(i) for i in range(len(tokens_arg))]
+        matches = find_tam_matches(_tam_rules(), _tam_whitelist(), tokens, disambiguated)
 
-    def fake_force_flagged(lex, force_flagged_lemmas):
-        return lex in force_flagged_lemmas
+    assert len(matches) == 1
+    assert matches[0][1]["flagged_phrase"] == "تم إغلاق"
 
-    def fake_nisba(info):
-        return info["pattern"].endswith("ي") and info["pos"] == "adj"
 
-    with patch("app.engine.rule_engine.reader", side_effect=[rules, whitelist]), \
-         patch("app.engine.rule_engine.find_flagged_words", return_value=(tokens, flagged_indices)), \
-         patch("app.engine.rule_engine.get_pos_and_pattern_in_context", side_effect=fake_disambiguate), \
-         patch("app.engine.rule_engine.is_whitelisted_lemma", return_value=False), \
-         patch("app.engine.rule_engine.is_force_excluded", return_value=False), \
-         patch("app.engine.rule_engine.is_force_flagged", side_effect=fake_force_flagged), \
-         patch("app.engine.rule_engine.matches_nisba_pattern", side_effect=fake_nisba), \
-         patch("app.engine.rule_engine.matches_flagged_pattern", return_value=False), \
-         patch("app.engine.rule_engine.build_match", side_effect=["MATCH_1", "MATCH_2"]), \
-         patch("app.engine.rule_engine.clean_text"):
+def test_find_tam_matches_passes_intransitive_masdar():
+    tokens = [(0, "تم"), (1, "خروج")]
+    disambiguated = [
+        {"pos": "verb", "pattern": "1َ2َّ", "lex": "تم"},
+        {"pos": "noun", "pattern": "12و3", "lex": "خروج"},
+    ]
 
-        result = analyze(RULES_PATH, WHITELIST_PATH, "تحدث بشكل مباشر وكتب بشكل جميل")
+    with patch(
+        "app.engine.rule_engine.derive_base_verb", return_value=("خرج", "unique_match")
+    ), patch("app.engine.rule_engine.is_transitive_verb", return_value=False):
 
-    assert result == ["MATCH_1", "MATCH_2"]
+        matches = find_tam_matches(_tam_rules(), _tam_whitelist(), tokens, disambiguated)
+
+    assert matches == []
+
+
+def test_find_tam_matches_withholds_untrusted_derivation():
+    """An untrusted derivation must not reach the transitivity lookup at all."""
+    tokens = [(0, "تم"), (1, "استلام")]
+    disambiguated = [
+        {"pos": "verb", "pattern": "1َ2َّ", "lex": "تم"},
+        {"pos": "noun", "pattern": "ٱِ12ا3", "lex": "استلام"},
+    ]
+
+    with patch(
+        "app.engine.rule_engine.derive_base_verb",
+        return_value=("استسلم", "length_disambiguated"),
+    ), patch("app.engine.rule_engine.is_transitive_verb") as mock_transitive:
+
+        matches = find_tam_matches(_tam_rules(), _tam_whitelist(), tokens, disambiguated)
+
+    assert matches == []
+    mock_transitive.assert_not_called()
+
+
+def test_find_tam_matches_ignores_nouns_ending_in_the_trigger_letters():
+    tokens = [(0, "خاتم"), (1, "الذهب")]
+    disambiguated = [
+        {"pos": "noun", "pattern": "1ا23", "lex": "خاتم"},
+        {"pos": "noun", "pattern": "ال123", "lex": "ذهب"},
+    ]
+
+    with patch("app.engine.rule_engine.derive_base_verb") as mock_derive:
+        matches = find_tam_matches(_tam_rules(), _tam_whitelist(), tokens, disambiguated)
+
+    assert matches == []
+    mock_derive.assert_not_called()
+
+
+def test_find_tam_matches_skips_non_alphabetic_tokens():
+    tokens = [(0, "تم"), (1, "%50"), (2, "إغلاق")]
+    disambiguated = [
+        {"pos": "verb", "pattern": "1َ2َّ", "lex": "تم"},
+        {"pos": "noun", "pattern": "", "lex": "%50"},
+        {"pos": "noun", "pattern": "إِ12ا3", "lex": "إغلاق"},
+    ]
+
+    with patch(
+        "app.engine.rule_engine.derive_base_verb", return_value=("أغلق", "unique_match")
+    ), patch("app.engine.rule_engine.is_transitive_verb", return_value=True):
+
+        matches = find_tam_matches(_tam_rules(), _tam_whitelist(), tokens, disambiguated)
+
+    assert matches[0][1]["flagged_phrase"] == "تم إغلاق"
+
+
+def test_find_tam_matches_returns_nothing_when_rule_not_configured():
+    """Without tam_trigger_lex the rule is simply off — v1-only configs must
+    keep working."""
+    tokens = [(0, "تم"), (1, "إغلاق")]
+    disambiguated = [
+        {"pos": "verb", "pattern": "1َ2َّ", "lex": "تم"},
+        {"pos": "noun", "pattern": "إِ12ا3", "lex": "إغلاق"},
+    ]
+
+    matches = find_tam_matches(
+        {"trigger_word": "بشكل"}, _tam_whitelist(), tokens, disambiguated
+    )
+
+    assert matches == []
+
+
+def test_find_tam_matches_passes_force_lists_through():
+    tokens = [(0, "تم"), (1, "استلام")]
+    disambiguated = [
+        {"pos": "verb", "pattern": "1َ2َّ", "lex": "تم"},
+        {"pos": "noun", "pattern": "ٱِ12ا3", "lex": "استلام"},
+    ]
+    whitelist = _tam_whitelist(
+        force_derived_verbs={"استلام": "استلم"}, force_intransitive_verbs=["خرج"]
+    )
+
+    with patch(
+        "app.engine.rule_engine.derive_base_verb", return_value=("استلم", "forced")
+    ) as mock_derive, patch(
+        "app.engine.rule_engine.is_transitive_verb", return_value=True
+    ) as mock_transitive:
+
+        find_tam_matches(_tam_rules(), whitelist, tokens, disambiguated)
+
+    mock_derive.assert_called_once_with("استلام", {"استلام": "استلم"})
+    mock_transitive.assert_called_once_with("استلم", ["خرج"])
+
+
+""" analyze — both rules in one response """
+
+
+def test_real_analyze_flags_tam_with_transitive_masdar():
+    result = analyze(rules_path, whitelist_path, "تم إغلاق الباب")
+
+    assert [m["flagged_phrase"] for m in result["matches"]] == ["تم إغلاق"]
+
+
+def test_real_analyze_passes_tam_with_intransitive_masdar():
+    result = analyze(rules_path, whitelist_path, "تم خروج الفريق")
+
+    assert result == {"flagged": False, "matches": []}
+
+
+def test_real_analyze_returns_both_rules_in_one_list():
+    """US-1: بشكل and تمّ matches share a single unified response."""
+    result = analyze(
+        rules_path, whitelist_path, "الجو جميل بشكل رائع وتم تنفيذ العمل"
+    )
+
+    phrases = [m["flagged_phrase"] for m in result["matches"]]
+    assert "بشكل رائع" in phrases
+    assert "وتم تنفيذ" in phrases
+
+
+def test_real_analyze_does_not_flag_noun_ending_in_trigger_letters():
+    result = analyze(rules_path, whitelist_path, "اشترى خاتم الذهب")
+
+    assert result == {"flagged": False, "matches": []}
+
+
+""" waw chain in find_tam_matches """
+
+
+def test_find_tam_matches_passes_waw_chain_without_deriving():
+    """A و-chain never flags, so derivation must not even run."""
+    tokens = [(0, "تم"), (1, "التدقيق"), (2, "والمراجعة")]
+    disambiguated = [
+        {"pos": "verb", "pattern": "1َ2َّ", "lex": "تم", "prc1": "0", "prc2": "0"},
+        {"pos": "noun", "pattern": "ت12ي3", "lex": "تدقيق", "prc1": "0", "prc2": "0"},
+        {"pos": "noun", "pattern": "م1ا23", "lex": "مراجعة", "prc1": "0", "prc2": "wa_part"},
+    ]
+
+    with patch("app.engine.rule_engine.derive_base_verb") as mock_derive:
+        matches = find_tam_matches(_tam_rules(), _tam_whitelist(), tokens, disambiguated)
+
+    assert matches == []
+    mock_derive.assert_not_called()
+
+
+def test_real_analyze_passes_waw_chain():
+    result = analyze(rules_path, whitelist_path, "تم التدقيق والمراجعة")
+
+    assert result == {"flagged": False, "matches": []}
+
+
+def test_real_analyze_still_flags_when_a_verb_opens_a_new_clause():
+    """«تم إغلاق الباب وذهب الرجل» — the و introduces a clause with its own
+    verb, so it is not chaining the masdar."""
+    result = analyze(rules_path, whitelist_path, "تم إغلاق الباب وذهب الرجل.")
+
+    assert [m["flagged_phrase"] for m in result["matches"]] == ["تم إغلاق"]
+
+
+def test_real_analyze_passes_chain_separated_by_commas():
+    """The و normally sits after the masdar's object, not next to it."""
+    result = analyze(
+        rules_path,
+        whitelist_path,
+        "تم مراجعة التقارير، وتدقيق الحسابات، واعتماد الميزانية.",
+    )
+
+    assert result == {"flagged": False, "matches": []}
+
+
+def test_real_analyze_passes_waw_chain_with_wa_sub_reading():
+    """«تم إغلاق وفتح الباب» — CAMeL reads this و as wa_sub, not wa_part."""
+    result = analyze(rules_path, whitelist_path, "تم إغلاق وفتح الباب")
+
+    assert result == {"flagged": False, "matches": []}
+
+
+""" masdar-vs-regular-noun gate """
+
+
+def test_find_tam_matches_skips_plain_noun_without_deriving():
+    """A plain noun is not an Arabized passive, so derivation must not run."""
+    tokens = [(0, "تم"), (1, "البيت")]
+    disambiguated = [
+        {"pos": "verb", "pattern": "1َ2َّ", "lex": "تم", "prc2": "0"},
+        {"pos": "noun", "pattern": "ال1َيْ3", "lex": "بيت", "prc2": "0"},
+    ]
+
+    with patch("app.engine.rule_engine.is_masdar", return_value=False), patch(
+        "app.engine.rule_engine.derive_base_verb"
+    ) as mock_derive:
+        matches = find_tam_matches(_tam_rules(), _tam_whitelist(), tokens, disambiguated)
+
+    assert matches == []
+    mock_derive.assert_not_called()
+
+
+def test_find_tam_matches_proceeds_when_masdar_status_unknown():
+    """None means Arramooz has no row; absence must not suppress a real flag."""
+    tokens = [(0, "تم"), (1, "حذف")]
+    disambiguated = [
+        {"pos": "verb", "pattern": "1َ2َّ", "lex": "تم", "prc2": "0"},
+        {"pos": "noun", "pattern": "1َ2ْ3", "lex": "حذف", "prc2": "0"},
+    ]
+
+    with patch("app.engine.rule_engine.is_masdar", return_value=None), patch(
+        "app.engine.rule_engine.derive_base_verb", return_value=("حذف", "unique_match")
+    ), patch("app.engine.rule_engine.is_transitive_verb", return_value=True):
+        matches = find_tam_matches(_tam_rules(), _tam_whitelist(), tokens, disambiguated)
+
+    assert matches[0][1]["flagged_phrase"] == "تم حذف"
+
+
+def test_real_analyze_passes_plain_noun_after_tam():
+    result = analyze(rules_path, whitelist_path, "تم الأمر بسرعة")
+
+    assert result == {"flagged": False, "matches": []}
+
+
+def test_real_analyze_passes_valid_intransitive_masdar_sentence():
+    result = analyze(rules_path, whitelist_path, "تم الاتفاق على البند")
+
+    assert result == {"flagged": False, "matches": []}
+
+
+def test_real_analyze_still_flags_measure_one_masdar():
+    """فتح is a real masdar sharing its shape with plain nouns — the noun gate
+    must not suppress it."""
+    result = analyze(rules_path, whitelist_path, "تم فتح الباب")
+
+    assert [m["flagged_phrase"] for m in result["matches"]] == ["تم فتح"]
+
+
+def test_find_tam_matches_skips_force_intransitive_masdar_before_deriving():
+    tokens = [(0, "تم"), (1, "العدول")]
+    disambiguated = [
+        {"pos": "verb", "pattern": "1َ2َّ", "lex": "تم", "prc2": "0"},
+        {"pos": "noun", "pattern": "ال1ُ2ُو3", "lex": "عدول", "prc2": "0"},
+    ]
+    whitelist = _tam_whitelist(force_intransitive_masdars=["عدول"])
+
+    with patch("app.engine.rule_engine.is_masdar", return_value=True), patch(
+        "app.engine.rule_engine.derive_base_verb"
+    ) as mock_derive:
+        matches = find_tam_matches(_tam_rules(), whitelist, tokens, disambiguated)
+
+    assert matches == []
+    mock_derive.assert_not_called()
+
+
+def test_real_analyze_passes_force_intransitive_masdar():
+    result = analyze(rules_path, whitelist_path, "تم العدول عن القرار السابق.")
+
+    assert result == {"flagged": False, "matches": []}
+
+
+def test_real_analyze_still_flags_the_colliding_sibling_masdar():
+    """عدول is overridden, تعديل must not be — both derive to «عدل»."""
+    result = analyze(rules_path, whitelist_path, "تم تعديل النظام.")
+
+    assert [m["flagged_phrase"] for m in result["matches"]] == ["تم تعديل"]
+
+
+""" response shape and ordering """
+
+
+def test_real_analyze_always_returns_the_same_shape():
+    flagged = analyze(rules_path, whitelist_path, "تم إغلاق الباب.")
+    clean = analyze(rules_path, whitelist_path, "الجو جميل.")
+
+    assert set(flagged) == set(clean) == {"flagged", "matches"}
+    assert flagged["flagged"] is True and clean["flagged"] is False
+    assert isinstance(flagged["matches"], list)
+    assert clean["matches"] == []
+
+
+def test_real_analyze_labels_which_rule_matched():
+    result = analyze(rules_path, whitelist_path, "تم إغلاق الباب بشكل رائع.")
+
+    assert {m["rule"] for m in result["matches"]} == {"تم", "بشكل"}
+
+
+def test_real_analyze_returns_matches_in_reading_order():
+    """A بشكل hit after a تمّ hit must not be reordered ahead of it."""
+    result = analyze(rules_path, whitelist_path, "تم إغلاق الباب بشكل رائع.")
+
+    assert [m["rule"] for m in result["matches"]] == ["تم", "بشكل"]
+
+
+def test_real_analyze_does_not_suppress_tam_before_a_prepositional_phrase():
+    """Regression: the forward و-scan read «وبشكل» as a chain member and
+    silently dropped the تمّ match."""
+    result = analyze(
+        rules_path, whitelist_path, "تم إغلاق الباب وبشكل رائع كتب المقال."
+    )
+
+    assert "تم إغلاق" in [m["flagged_phrase"] for m in result["matches"]]
+
+
+""" intransitive overrides are keyed by masdar, not verb """
+
+
+@pytest.mark.parametrize(
+    "sentence, phrase",
+    [
+        ("تم توقيع الاتفاقية.", "تم توقيع"),
+        ("تم توصيل الطلب.", "تم توصيل"),
+        ("تم تخريج الدفعة.", "تم تخريج"),
+        ("تم تصعيد الموقف.", "تم تصعيد"),
+    ],
+)
+def test_real_analyze_flags_transitive_masdar_sharing_an_intransitive_verb(
+    sentence, phrase
+):
+    """توقيع (وقّع, II, transitive) and وقوع (وقع, I, intransitive) both derive
+    to «وقع», so keying the override by verb silenced the transitive one."""
+    result = analyze(rules_path, whitelist_path, sentence)
+
+    assert [m["flagged_phrase"] for m in result["matches"]] == [phrase]
+
+
+@pytest.mark.parametrize("masdar", ["خروج", "دخول", "وصول", "وقوع", "صعود"])
+def test_real_analyze_still_passes_the_intransitive_masdars(masdar):
+    result = analyze(rules_path, whitelist_path, f"تم {masdar} اليوم.")
+
+    assert result == {"flagged": False, "matches": []}
+
+
+""" masdar_target_index — an adverbial may sit between تمّ and its masdar """
+
+
+def test_masdar_target_index_takes_the_following_noun():
+    tokens = [(0, "تم"), (1, "إغلاق"), (2, "الباب")]
+    disambiguated = [_descriptor(pos="verb"), _descriptor(pos="noun"), _descriptor(pos="noun")]
+
+    assert masdar_target_index(tokens, 0, disambiguated) == 1
+
+
+def test_masdar_target_index_steps_over_an_adverbial():
+    """«يتمّ حالياً إجراء الصيانة» — حالياً is tagged adj, the masdar is noun."""
+    tokens = [(0, "يتم"), (1, "حاليا"), (2, "إجراء"), (3, "الصيانة")]
+    disambiguated = [
+        _descriptor(pos="verb"), _descriptor(pos="adj"),
+        _descriptor(pos="noun"), _descriptor(pos="noun"),
+    ]
+
+    assert masdar_target_index(tokens, 0, disambiguated) == 2
+
+
+def test_masdar_target_index_stops_at_a_verb():
+    """«إذا تمّ العقلُ نَقَصَ الكلامُ» must not reach into the next clause."""
+    tokens = [(0, "تم"), (1, "العقل"), (2, "نقص"), (3, "الكلام")]
+    disambiguated = [
+        _descriptor(pos="verb"), _descriptor(pos="noun"),
+        _descriptor(pos="verb"), _descriptor(pos="noun"),
+    ]
+
+    assert masdar_target_index(tokens, 0, disambiguated) == 1
+
+
+def test_masdar_target_index_stops_at_sentence_end():
+    tokens = [(0, "تم"), (1, "."), (2, "إغلاق")]
+    disambiguated = [_descriptor(pos="verb"), _descriptor(pos="punc"), _descriptor(pos="noun")]
+
+    assert masdar_target_index(tokens, 0, disambiguated) is None
+
+
+def test_masdar_target_index_falls_back_to_a_non_noun_candidate():
+    """With no noun in the window the first candidate is still returned, so the
+    gates downstream get their say rather than the match vanishing here."""
+    tokens = [(0, "تم"), (1, "سريعا")]
+    disambiguated = [_descriptor(pos="verb"), _descriptor(pos="adj")]
+
+    assert masdar_target_index(tokens, 0, disambiguated) == 1
+
+
+def test_real_analyze_finds_the_masdar_past_an_adverbial():
+    result = analyze(rules_path, whitelist_path, "يتم حاليا إجراء الصيانة.")
+
+    assert [m["flagged_phrase"] for m in result["matches"]] == ["يتم إجراء"]
+
+
+def test_real_analyze_does_not_cross_into_the_next_clause():
+    result = analyze(rules_path, whitelist_path, "إذا تم العقل نقص الكلام.")
+
+    assert result == {"flagged": False, "matches": []}
+
+
+@pytest.mark.parametrize(
+    "sentence, phrase",
+    [("تم حذف الملف.", "تم حذف"), ("تم تقييم الأداء.", "تم تقييم")],
+)
+def test_real_analyze_keeps_masdars_absent_from_the_nouns_table(sentence, phrase):
+    """حذف is not in Arramooz's nouns table but الملف is recorded as a masdar —
+    a scan keyed on that verdict would walk past the target onto its object."""
+    result = analyze(rules_path, whitelist_path, sentence)
+
+    assert [m["flagged_phrase"] for m in result["matches"]] == [phrase]

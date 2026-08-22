@@ -315,3 +315,12 @@ def test_real_derive_base_verb_reports_unresolved_ambiguity():
 
     assert verb == "وصل"
     assert status == "still_ambiguous"
+
+
+@pytest.mark.parametrize("masdar, expected", [("افتتاح", "افتتح"), ("حل", "حل")])
+def test_real_derive_base_verb_on_previously_failing_shapes_round_two(masdar, expected):
+    """افتتاح fell through to a form X verb; حل found no measure match at all
+    because a contracted geminate is two letters."""
+    verb, _ = derive_base_verb(masdar)
+
+    assert verb == expected

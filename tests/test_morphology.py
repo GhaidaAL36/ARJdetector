@@ -257,3 +257,23 @@ def test_verb_matches_measure_viii_accepts_assimilated_verb():
     assert verb_matches_measure(row, "VIII") is True
 
 
+
+
+def test_verb_matches_measure_i_accepts_contracted_geminate():
+    """حَلَّ spells حل — two letters unvocalized — and its shadda marks the
+    doubled radical, not measure II."""
+    row = {"unvocalized": "حل", "vocalized": "حَلَّ", "root": "حلل"}
+
+    assert verb_matches_measure(row, "I") is True
+
+
+def test_verb_matches_measure_i_still_rejects_shadda_on_three_letters():
+    row = {"unvocalized": "قيم", "vocalized": "قَيَّمَ", "root": "قيم"}
+
+    assert verb_matches_measure(row, "I") is False
+
+
+def test_classify_measure_viii_when_second_radical_is_ta():
+    """افتتاح patterns as 'ٱِ1ْ2ِتا3' — the infix ت lands after the second
+    radical slot, so the usual تِ probe misses it."""
+    assert classify_measure("ٱِ1ْ2ِتا3") == "VIII"
