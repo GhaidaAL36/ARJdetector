@@ -57,6 +57,8 @@ def classify_measure(raw_pattern):
             return "VIII"
         if len(raw_pattern) > 3 and "ت" in raw_pattern[2:5]:
             return "VIII"
+        if "تا" in raw_pattern and raw_pattern.endswith("3"):
+            return "VIII"
         return "IV_or_VIII_unclear"
     if raw_pattern.startswith(("إِ", "أَ")):
         return "IV"
@@ -98,8 +100,6 @@ def verb_matches_measure(verb_row, measure):
     roots = _root_options(root)
 
     def is_first_radical(index):
-        """Does the verb hold a first radical at this index? True when the row
-        carries no root to check against."""
         if not roots:
             return True
         if index >= len(verb):
@@ -143,6 +143,8 @@ def verb_matches_measure(verb_row, measure):
         return len(verb) == 3 and has_shadda
 
     if measure == "I":
+        if len(verb) == 2:
+            return has_shadda
         return len(verb) == 3 and not has_shadda
 
     return True
