@@ -32,7 +32,19 @@ def get_pos_and_pattern_in_context(tokens):
         pos = top_analysis.get("pos", "")
         pattern = dediac_ar(top_analysis.get("pattern", ""))
         lex = dediac_ar(top_analysis.get("lex", ""))
-        results.append({"pos": pos, "pattern": pattern, "lex": lex})
+        prc2 = top_analysis.get("prc2", "")
+        prc1 = top_analysis.get("prc1", "")
+        prc0 = top_analysis.get("prc0", "")
+        results.append(
+            {
+                "pos": pos,
+                "pattern": pattern,
+                "lex": lex,
+                "prc0": prc0,
+                "prc1": prc1,
+                "prc2": prc2,
+            }
+        )
 
     return results
 
