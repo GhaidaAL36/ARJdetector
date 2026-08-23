@@ -1,14 +1,51 @@
-def matches_flagged_pattern(rules, pos_pattern_info):
+AL_DET = "Al_det"
+DESCRIPTOR_POS = frozenset({"adj", "noun", "noun_prop"})
+
+
+def describes_shakl(pos_pattern_info):
+    if pos_pattern_info.get("prc0") == AL_DET:
+        return False
+    return pos_pattern_info["pos"] in DESCRIPTOR_POS
+
+
+def is_tam_trigger(pos_pattern_info, trigger_lex):
     return (
-        pos_pattern_info["pattern"] in rules["flagged_patterns"]
-        and pos_pattern_info["pos"] == "adj"
+        pos_pattern_info["lex"] == trigger_lex and pos_pattern_info["pos"] == "verb"
     )
 
 
-def matches_nisba_pattern(pos_pattern_info):
-    return (
-        pos_pattern_info["pattern"].endswith("ي") and pos_pattern_info["pos"] == "adj"
-    )
+WAW_PROCLITICS = frozenset({"wa_part", "wa_conj", "wa_sub"})
+SENTENCE_END = frozenset({".", "!", "?", "؟", "۔"})
+NO_PROCLITIC = frozenset({"0", "na", ""})
+
+
+def is_in_waw_chain(tokens, target_index, disambiguated):
+    for index in range(target_index + 1, len(tokens)):
+        word = tokens[index][1]
+        info = disambiguated[index]
+
+        if word in SENTENCE_END:
+            return False
+        if info.get("pos") == "verb":
+            return False
+        if word == "و":
+            return True
+        if (
+            info.get("prc2") in WAW_PROCLITICS
+            and info.get("pos") == "noun"
+            and info.get("prc1") in NO_PROCLITIC
+        ):
+            return True
+
+    return False
+
+
+def is_force_intransitive_masdar(word, force_intransitive_masdars):
+    if word in force_intransitive_masdars:
+        return True
+    if word.startswith("ال"):
+        return word[2:] in force_intransitive_masdars
+    return False
 
 
 def is_whitelisted_lemma(lemma, whitelisted_lemmas):
@@ -25,10 +62,6 @@ def is_phrase_whitelisted(tokens, start_index, whitelisted_phrases):
     return False, 1
 
 
-def is_force_flagged(lex, force_flagged_lemmas):
-    return lex in force_flagged_lemmas
-
-
 def is_force_excluded(lex, force_excluded_lemmas):
     return lex in force_excluded_lemmas
 
@@ -40,3 +73,11 @@ def get_suggestion():
 def get_explanation():
     FIXED_EXPLANATION = "حشو أسلوبي"
     return FIXED_EXPLANATION
+
+
+def get_tam_suggestion():
+    return "يمكن استبدال «تم» بفعل مبني للمجهول مباشرة"
+
+
+def get_tam_explanation():
+    return "مبني للمجهول مُعرَّب"
