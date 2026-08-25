@@ -60,5 +60,8 @@
     "إدبار",
     "إعراض"
   ],
-  "force_intransitive_verbs": []
+  "force_intransitive_verbs": [],
+  "qam_mistagged_surfaces": [
+    "نقم"
+  ]
 }

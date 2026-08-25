@@ -1,4 +1,9 @@
 {
   "trigger_word": "بشكل",
-  "tam_trigger_lex": "تم"
+  "tam_trigger_lex": "تم",
+  "qam_trigger_lex": [
+    "قام",
+    "قم",
+    "قوم"
+  ]
 }
