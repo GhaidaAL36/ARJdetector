@@ -14,6 +14,32 @@ def is_tam_trigger(pos_pattern_info, trigger_lex):
     )
 
 
+VERB_POS = "verb"
+NEGATION_POS = "part_neg"
+
+
+def is_qam_trigger(
+    tokens,
+    index,
+    disambiguated,
+    trigger_lexes,
+    mistagged_surfaces=None,
+):
+    info = disambiguated[index]
+    if info["lex"] in trigger_lexes and info["pos"] == VERB_POS:
+        return True
+    return _is_negated_qam_mistag(tokens, index, disambiguated, mistagged_surfaces)
+
+
+def _is_negated_qam_mistag(tokens, index, disambiguated, mistagged_surfaces):
+
+    if not mistagged_surfaces or tokens[index][1] not in mistagged_surfaces:
+        return False
+    if index == 0:
+        return False
+    return disambiguated[index - 1]["pos"] == NEGATION_POS
+
+
 WAW_PROCLITICS = frozenset({"wa_part", "wa_conj", "wa_sub"})
 SENTENCE_END = frozenset({".", "!", "?", "؟", "۔"})
 NO_PROCLITIC = frozenset({"0", "na", ""})
