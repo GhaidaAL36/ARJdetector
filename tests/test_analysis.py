@@ -198,3 +198,29 @@ def test_real_prc0_marks_the_definite_article():
 
     tokens = list(enumerate(["تغير", "بشكل", "كبير"]))
     assert get_pos_and_pattern_in_context(tokens)[2]["prc0"] == "0"
+
+
+def test_lex_is_folded_to_plain_alif():
+    """CAMeL spells every connecting-alif lexeme with ٱ (U+0671); Arramooz never
+    stores that character, so the lemma is folded before anything looks it up."""
+    tokens = [(0, "اكتشاف")]
+    fake_result = [
+        make_fake_disambiguated_word("اكتشاف", "noun", "ٱِ1ْتِ2ا3", "ٱِكْتِشاف")
+    ]
+
+    with patch("app.engine.analysis._mle") as mock_mle:
+        mock_mle.disambiguate.return_value = fake_result
+        results = get_pos_and_pattern_in_context(tokens)
+
+    assert results[0]["lex"] == "اكتشاف"
+
+
+def test_lex_keeps_the_other_hamza_carriers():
+    tokens = [(0, "إصلاح")]
+    fake_result = [make_fake_disambiguated_word("إصلاح", "noun", "إِ1ْ2ا3", "إِصْلاح")]
+
+    with patch("app.engine.analysis._mle") as mock_mle:
+        mock_mle.disambiguate.return_value = fake_result
+        results = get_pos_and_pattern_in_context(tokens)
+
+    assert results[0]["lex"] == "إصلاح"

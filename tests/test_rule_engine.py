@@ -734,3 +734,23 @@ def test_real_analyze_keeps_masdars_absent_from_the_nouns_table(sentence, phrase
     result = analyze(rules_path, whitelist_path, sentence)
 
     assert [m["flagged_phrase"] for m in result["matches"]] == [phrase]
+
+
+""" alif wasla — the lexeme lookup path """
+
+
+def test_real_analyze_resolves_a_connecting_alif_masdar_at_sentence_level():
+    """CAMeL returns lex=ٱكتشاف for an input spelled with a plain alif. Nothing
+    reads lex for this word today, but v4's table lookup will, so the fold is
+    pinned down end to end rather than only in the analysis unit test."""
+    result = analyze(rules_path, whitelist_path, "تم اكتشاف الخطأ.")
+
+    assert [m["flagged_phrase"] for m in result["matches"]] == ["تم اكتشاف"]
+
+
+def test_real_analyze_still_flags_a_hamza_initial_masdar():
+    """The fold is confined to ٱ — إغلاق must keep resolving through Arramooz,
+    which stores إ faithfully and holds no row for اغلاق."""
+    result = analyze(rules_path, whitelist_path, "تم إغلاق الباب.")
+
+    assert [m["flagged_phrase"] for m in result["matches"]] == ["تم إغلاق"]
