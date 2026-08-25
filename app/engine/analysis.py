@@ -3,6 +3,8 @@ from camel_tools.morphology.analyzer import Analyzer
 from camel_tools.disambig.mle import MLEDisambiguator
 from camel_tools.utils.dediac import dediac_ar
 
+from app.text.normalize import normalize_lookup_key
+
 _mle = None
 _analyzer = None
 
@@ -31,7 +33,7 @@ def get_pos_and_pattern_in_context(tokens):
         top_analysis = entry.analyses[0].analysis
         pos = top_analysis.get("pos", "")
         pattern = dediac_ar(top_analysis.get("pattern", ""))
-        lex = dediac_ar(top_analysis.get("lex", ""))
+        lex = normalize_lookup_key(dediac_ar(top_analysis.get("lex", "")))
         prc2 = top_analysis.get("prc2", "")
         prc1 = top_analysis.get("prc1", "")
         prc0 = top_analysis.get("prc0", "")
