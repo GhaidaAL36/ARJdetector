@@ -40,6 +40,16 @@ def _is_negated_qam_mistag(tokens, index, disambiguated, mistagged_surfaces):
     return disambiguated[index - 1]["pos"] == NEGATION_POS
 
 
+ADJECTIVE_POS = "adj"
+
+
+def is_described_complement(disambiguated, complement_index):
+    after = complement_index + 1
+    if after >= len(disambiguated):
+        return False
+    return disambiguated[after].get("pos") == ADJECTIVE_POS
+
+
 WAW_PROCLITICS = frozenset({"wa_part", "wa_conj", "wa_sub"})
 SENTENCE_END = frozenset({".", "!", "?", "؟", "۔"})
 NO_PROCLITIC = frozenset({"0", "na", ""})
