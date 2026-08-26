@@ -12,8 +12,8 @@ from app.engine.rule_engine import analyze, qam_complement_index
 from app.rules.rule_loader import reader
 from app.text.preprocessor import preprocess
 
-LEXES = reader(rules_path)["qam_trigger_lex"]
-MISTAGGED = reader(whitelist_path)["qam_mistagged_surfaces"]
+LEXES = reader(rules_path)["qam"]["trigger_lex"]
+MISTAGGED = reader(whitelist_path)["qam"]["mistagged_surfaces"]
 
 
 def qam_chain(sentence):

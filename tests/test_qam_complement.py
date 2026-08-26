@@ -11,8 +11,8 @@ from app.engine.rule_engine import QAM_MAX_SKIP_TOKENS, qam_complement_index
 from app.rules.rule_loader import reader
 from app.text.preprocessor import preprocess
 
-QAM_TRIGGER_LEXES = reader(rules_path)["qam_trigger_lex"]
-QAM_MISTAGGED = reader(whitelist_path)["qam_mistagged_surfaces"]
+QAM_TRIGGER_LEXES = reader(rules_path)["qam"]["trigger_lex"]
+QAM_MISTAGGED = reader(whitelist_path)["qam"]["mistagged_surfaces"]
 
 """ qam_complement_index — unit tests, no CAMeL """
 

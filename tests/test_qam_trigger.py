@@ -5,8 +5,8 @@ from app.config import rules_path, whitelist_path
 from app.engine.rule import is_qam_trigger
 from app.rules.rule_loader import reader
 
-QAM_TRIGGER_LEXES = reader(rules_path)["qam_trigger_lex"]
-QAM_MISTAGGED_SURFACES = reader(whitelist_path)["qam_mistagged_surfaces"]
+QAM_TRIGGER_LEXES = reader(rules_path)["qam"]["trigger_lex"]
+QAM_MISTAGGED_SURFACES = reader(whitelist_path)["qam"]["mistagged_surfaces"]
 from app.text.preprocessor import preprocess
 from app.engine.analysis import get_pos_and_pattern_in_context
 

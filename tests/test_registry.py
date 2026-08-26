@@ -22,7 +22,7 @@ def _whitelist():
 def test_the_registry_lists_every_lemma_triggered_rule():
     """بشكل is deliberately absent: it is a surface scan, which is what lets
     analyze skip the model."""
-    assert LEMMA_RULE_KEYS == ("tam_trigger_lex", "qam_trigger_lex")
+    assert LEMMA_RULE_KEYS == ("tam_trigger_lex", "qam")
 
 
 def test_analyze_skips_the_model_when_no_rule_can_have_a_candidate():
@@ -45,7 +45,8 @@ def test_analyze_skips_the_model_when_no_rule_can_have_a_candidate():
 def test_analyze_runs_the_model_when_any_lemma_rule_is_configured(key):
     """Each lemma rule on its own is enough to require the disambiguator —
     adding a third rule must not let the short-circuit swallow it."""
-    rules = {"trigger_word": "بشكل", key: ["قام"] if "qam" in key else "تم"}
+    value = {"trigger_lex": ["قام"]} if key == "qam" else "تم"
+    rules = {"trigger_word": "بشكل", key: value}
     tokens = [(0, "الجو"), (1, "جميل")]
 
     with patch(
@@ -65,7 +66,11 @@ def test_analyze_runs_the_model_when_any_lemma_rule_is_configured(key):
 
 
 def test_analyze_merges_three_rules_in_reading_order():
-    rules = {"trigger_word": "بشكل", "tam_trigger_lex": "تم", "qam_trigger_lex": ["قام"]}
+    rules = {
+        "trigger_word": "بشكل",
+        "tam_trigger_lex": "تم",
+        "qam": {"trigger_lex": ["قام"]},
+    }
     tokens = list(enumerate(["قام", "بدراسة", "تم", "إغلاق", "بشكل", "رائع"]))
 
     with patch(

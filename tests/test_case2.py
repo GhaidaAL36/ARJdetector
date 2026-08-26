@@ -14,11 +14,11 @@ from app.text.preprocessor import preprocess
 
 RULES = reader(rules_path)
 WHITELIST = reader(whitelist_path)
-LEXES = RULES["qam_trigger_lex"]
-EMPHASIS = RULES["qam_emphasis_lex"]
-MISTAGGED = WHITELIST["qam_mistagged_surfaces"]
-NEGATION = WHITELIST["qam_negation_surfaces"]
-EMPHASIS_SURFACES = WHITELIST["qam_emphasis_surfaces"]
+LEXES = RULES["qam"]["trigger_lex"]
+EMPHASIS = RULES["qam"]["emphasis_lex"]
+MISTAGGED = WHITELIST["qam"]["mistagged_surfaces"]
+NEGATION = WHITELIST["qam"]["negation_surfaces"]
+EMPHASIS_SURFACES = WHITELIST["qam"]["emphasis_surfaces"]
 
 """ unit tests, no CAMeL """
 
