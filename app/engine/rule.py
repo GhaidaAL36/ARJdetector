@@ -55,6 +55,22 @@ SENTENCE_END = frozenset({".", "!", "?", "؟", "۔"})
 NO_PROCLITIC = frozenset({"0", "na", ""})
 
 
+def _waw_member_index(tokens, index, disambiguated):
+    word = tokens[index][1]
+    if word == "و":
+        following = index + 1
+        return following if following < len(disambiguated) else None
+
+    info = disambiguated[index]
+    if (
+        info.get("prc2") in WAW_PROCLITICS
+        and info.get("pos") == "noun"
+        and info.get("prc1") in NO_PROCLITIC
+    ):
+        return index
+    return None
+
+
 def is_in_waw_chain(tokens, target_index, disambiguated):
     for index in range(target_index + 1, len(tokens)):
         word = tokens[index][1]
@@ -64,14 +80,12 @@ def is_in_waw_chain(tokens, target_index, disambiguated):
             return False
         if info.get("pos") == "verb":
             return False
-        if word == "و":
+
+        if _waw_member_index(tokens, index, disambiguated) is not None:
             return True
-        if (
-            info.get("prc2") in WAW_PROCLITICS
-            and info.get("pos") == "noun"
-            and info.get("prc1") in NO_PROCLITIC
-        ):
-            return True
+
+        if word.isalpha():
+            return False
 
     return False
 
