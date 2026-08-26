@@ -16,6 +16,8 @@ from app.engine.dictionary import is_masdar, is_transitive_verb
 from app.engine.match import build_match, build_tam_match, build_response
 
 MAX_SKIP_TOKENS = 3
+QAM_MAX_SKIP_TOKENS = 6
+BI_PREP = "bi_prep"
 ASIDE_DELIMITERS = {"(": ")", "[": "]", "«": "»", "-": "-", "—": "—", "،": "،"}
 ASIDE_MAX_TOKENS = 8
 
@@ -48,6 +50,17 @@ def next_target_index(tokens, index):
 
         position += 1
         skipped += 1
+
+    return None
+
+
+def qam_complement_index(tokens, index, disambiguated, max_skip=QAM_MAX_SKIP_TOKENS):
+    limit = min(index + 1 + max_skip, len(tokens))
+    for position in range(index + 1, limit):
+        if tokens[position][1] in SENTENCE_END:
+            return None
+        if disambiguated[position].get("prc1") == BI_PREP:
+            return position
 
     return None
 
