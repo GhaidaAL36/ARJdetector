@@ -202,11 +202,12 @@ def test_is_tam_trigger_false_when_lex_matches_but_pos_is_not_verb():
     assert is_tam_trigger(info, "تم") is False
 
 
-""" is_in_waw_chain tests """
+""" is_in_waw_chain tests — bare series only (Ghaida, 2026-08-26) """
 
 
-def _info(prc2="0", prc1="0"):
-    return {"pos": "noun", "pattern": "", "lex": "", "prc1": prc1, "prc2": prc2}
+def _info(prc2="0", prc1="0", prc0="0"):
+    return {"pos": "noun", "pattern": "", "lex": "", "prc1": prc1, "prc2": prc2,
+            "prc0": prc0}
 
 
 @pytest.mark.parametrize("proclitic", ["wa_part", "wa_conj", "wa_sub"])
@@ -249,69 +250,46 @@ def test_is_in_waw_chain_false_at_end_of_tokens():
     assert is_in_waw_chain(tokens, 1, disambiguated) is False
 
 
-def test_is_in_waw_chain_scans_past_the_masdar_object():
-    """A masdar carries its object first — «تم مراجعة التقارير، وتدقيق
-    الحسابات» — so the و is not adjacent to the target."""
-    tokens = [(0, "تم"), (1, "مراجعة"), (2, "التقارير"), (3, "،"), (4, "وتدقيق")]
-    disambiguated = [_info(), _info(), _info(), _info(), _info("wa_sub")]
-
-    assert is_in_waw_chain(tokens, 1, disambiguated) is True
-
-
-def test_is_in_waw_chain_stops_at_a_verb():
-    """«تم إغلاق الباب وذهب الرجل» — the و introduces a new clause with its own
-    verb, so إغلاق is judged on its own and must still flag."""
-    tokens = [(0, "تم"), (1, "إغلاق"), (2, "الباب"), (3, "وذهب"), (4, "الرجل")]
-    disambiguated = [
-        _info(),
-        _info(),
-        _info(),
-        {"pos": "verb", "pattern": "", "lex": "ذهب", "prc1": "0", "prc2": "wa_conj"},
-        _info(),
-    ]
+def test_is_in_waw_chain_false_when_the_head_governs_an_object():
+    """«تم إغلاق الباب وفتح النافذة» — each مصدر carries its own object, so the
+    whole thing collapses to «أُغلق البابُ وفُتحت النافذةُ» and is عرنجية.
+    The head's object الباب is what rules the chain out."""
+    tokens = [(0, "تم"), (1, "إغلاق"), (2, "الباب"), (3, "وفتح"), (4, "النافذة")]
+    disambiguated = [_info(), _info(), _info(), _info("wa_conj"), _info()]
 
     assert is_in_waw_chain(tokens, 1, disambiguated) is False
 
 
-def test_is_in_waw_chain_stops_at_sentence_end():
-    tokens = [(0, "تم"), (1, "إغلاق"), (2, "الباب"), (3, "."), (4, "وفتح")]
-    disambiguated = [_info(), _info(), _info(), _info(), _info("wa_conj")]
+def test_is_in_waw_chain_false_when_the_waw_coordinates_the_object():
+    """«تم إغلاق الباب والنافذة» — the و joins the OBJECT, not a second مصدر.
+    The head's object already rules it out; no definiteness check needed."""
+    tokens = [(0, "تم"), (1, "إغلاق"), (2, "الباب"), (3, "والنافذة")]
+    disambiguated = [_info(), _info(), _info(), _info("wa_conj")]
 
     assert is_in_waw_chain(tokens, 1, disambiguated) is False
 
 
 def test_is_in_waw_chain_does_not_stop_at_a_comma():
-    """A comma separates chain members rather than ending the chain."""
-    tokens = [(0, "تم"), (1, "فحص"), (2, "الجهاز"), (3, "،"), (4, "وتغيير")]
-    disambiguated = [_info(), _info(), _info(), _info(), _info("wa_conj")]
+    """A comma between bare members does not end the chain."""
+    tokens = [(0, "تم"), (1, "التدقيق"), (2, "،"), (3, "والمراجعة")]
+    disambiguated = [_info(), _info(), _info(), _info("wa_conj")]
 
     assert is_in_waw_chain(tokens, 1, disambiguated) is True
 
 
-""" is_force_intransitive_masdar tests """
+def test_is_in_waw_chain_stops_at_a_verb():
+    """«تم إغلاق وذهب الرجل» — the و introduces a new clause with its own verb."""
+    tokens = [(0, "تم"), (1, "إغلاق"), (2, "وذهب"), (3, "الرجل")]
+    disambiguated = [_info(), _info(), {**_info("wa_conj"), "pos": "verb"}, _info()]
+
+    assert is_in_waw_chain(tokens, 1, disambiguated) is False
 
 
-def test_is_force_intransitive_masdar_true_when_listed():
-    assert is_force_intransitive_masdar("عدول", ["عدول"]) is True
+def test_is_in_waw_chain_stops_at_sentence_end():
+    tokens = [(0, "تم"), (1, "التدقيق"), (2, "."), (3, "والمراجعة")]
+    disambiguated = [_info(), _info(), _info(), _info("wa_conj")]
 
-
-def test_is_force_intransitive_masdar_matches_definite_form():
-    assert is_force_intransitive_masdar("العدول", ["عدول"]) is True
-
-
-def test_is_force_intransitive_masdar_false_when_absent():
-    assert is_force_intransitive_masdar("إغلاق", ["عدول"]) is False
-
-
-def test_is_force_intransitive_masdar_empty_list():
-    assert is_force_intransitive_masdar("عدول", []) is False
-
-
-def test_is_force_intransitive_masdar_does_not_catch_the_sibling_masdar():
-    """عدول and تعديل both derive to «عدل», so keying this list on the verb
-    would silence تعديل too. Keying on the masdar keeps them apart."""
-    assert is_force_intransitive_masdar("تعديل", ["عدول"]) is False
-    assert is_force_intransitive_masdar("التعديل", ["عدول"]) is False
+    assert is_in_waw_chain(tokens, 1, disambiguated) is False
 
 
 def test_is_in_waw_chain_ignores_a_prepositional_phrase():

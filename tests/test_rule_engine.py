@@ -495,15 +495,17 @@ def test_real_analyze_still_flags_when_a_verb_opens_a_new_clause():
     assert [m["flagged_phrase"] for m in result["matches"]] == ["تم إغلاق"]
 
 
-def test_real_analyze_passes_chain_separated_by_commas():
-    """The و normally sits after the masdar's object, not next to it."""
+def test_real_analyze_flags_a_chain_whose_members_carry_objects():
+    """RELABELLED 2026-08-26. Each مصدر here governs its own object, so the
+    whole thing collapses — «رُوجعت التقاريرُ ودُقّقت الحساباتُ واعتُمدت
+    الميزانيةُ» — and تمّ is redundant. This previously asserted silence."""
     result = analyze(
         rules_path,
         whitelist_path,
         "تم مراجعة التقارير، وتدقيق الحسابات، واعتماد الميزانية.",
     )
 
-    assert result == {"flagged": False, "matches": []}
+    assert [m["flagged_phrase"] for m in result["matches"]] == ["تم مراجعة"]
 
 
 def test_real_analyze_passes_waw_chain_with_wa_sub_reading():
