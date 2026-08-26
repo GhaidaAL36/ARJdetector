@@ -6,6 +6,7 @@ from app.engine.morphology import (
     verb_matches_measure,
 )
 from app.engine.dictionary import lookup_verbs_by_root
+from app.engine.tags import NOUN
 
 TRUSTED_DERIVATION_STATUSES = {
     "forced",
@@ -24,7 +25,7 @@ def derive_base_verb(masdar, force_derived_verbs=None):
     if not analyses:
         return None, "no_camel_analysis"
 
-    noun_analyses = [a for a in analyses if a.get("pos") == "noun"]
+    noun_analyses = [a for a in analyses if a.get("pos") == NOUN]
     analysis = noun_analyses[0] if noun_analyses else analyses[0]
 
     camel_root = analysis.get("root", "")

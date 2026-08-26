@@ -1,5 +1,14 @@
-AL_DET = "Al_det"
-DESCRIPTOR_POS = frozenset({"adj", "noun", "noun_prop"})
+from app.engine.tags import (
+    ADJ,
+    AL_DET,
+    DESCRIPTOR_POS,
+    NO_PROCLITIC,
+    NOUN,
+    PART_NEG,
+    SENTENCE_END,
+    VERB,
+    WAW_PROCLITICS,
+)
 
 
 def describes_shakl(pos_pattern_info):
@@ -10,12 +19,8 @@ def describes_shakl(pos_pattern_info):
 
 def is_tam_trigger(pos_pattern_info, trigger_lex):
     return (
-        pos_pattern_info["lex"] == trigger_lex and pos_pattern_info["pos"] == "verb"
+        pos_pattern_info["lex"] == trigger_lex and pos_pattern_info["pos"] == VERB
     )
-
-
-VERB_POS = "verb"
-NEGATION_POS = "part_neg"
 
 
 def is_qam_trigger(
@@ -26,7 +31,7 @@ def is_qam_trigger(
     mistagged_surfaces=None,
 ):
     info = disambiguated[index]
-    if info["lex"] in trigger_lexes and info["pos"] == VERB_POS:
+    if info["lex"] in trigger_lexes and info["pos"] == VERB:
         return True
     return _is_negated_qam_mistag(tokens, index, disambiguated, mistagged_surfaces)
 
@@ -37,22 +42,14 @@ def _is_negated_qam_mistag(tokens, index, disambiguated, mistagged_surfaces):
         return False
     if index == 0:
         return False
-    return disambiguated[index - 1]["pos"] == NEGATION_POS
-
-
-ADJECTIVE_POS = "adj"
+    return disambiguated[index - 1]["pos"] == PART_NEG
 
 
 def is_described_complement(disambiguated, complement_index):
     after = complement_index + 1
     if after >= len(disambiguated):
         return False
-    return disambiguated[after].get("pos") == ADJECTIVE_POS
-
-
-WAW_PROCLITICS = frozenset({"wa_part", "wa_conj", "wa_sub"})
-SENTENCE_END = frozenset({".", "!", "?", "؟", "۔"})
-NO_PROCLITIC = frozenset({"0", "na", ""})
+    return disambiguated[after].get("pos") == ADJ
 
 
 def _waw_member_index(tokens, index, disambiguated):
@@ -64,7 +61,7 @@ def _waw_member_index(tokens, index, disambiguated):
     info = disambiguated[index]
     if (
         info.get("prc2") in WAW_PROCLITICS
-        and info.get("pos") == "noun"
+        and info.get("pos") == NOUN
         and info.get("prc1") in NO_PROCLITIC
     ):
         return index
@@ -78,7 +75,7 @@ def is_in_waw_chain(tokens, target_index, disambiguated):
 
         if word in SENTENCE_END:
             return False
-        if info.get("pos") == "verb":
+        if info.get("pos") == VERB:
             return False
 
         if _waw_member_index(tokens, index, disambiguated) is not None:

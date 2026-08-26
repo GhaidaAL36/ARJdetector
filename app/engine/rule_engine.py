@@ -1,8 +1,8 @@
 from app.rules.rule_loader import reader
 from app.text.preprocessor import preprocess
 from app.engine.analysis import get_pos_and_pattern_in_context
+from app.engine.tags import BI_PREP, NOUN, SENTENCE_END, VERB
 from app.engine.rule import (
-    SENTENCE_END,
     describes_shakl,
     is_phrase_whitelisted,
     is_whitelisted_lemma,
@@ -17,7 +17,6 @@ from app.engine.match import build_match, build_tam_match, build_response
 
 MAX_SKIP_TOKENS = 3
 QAM_MAX_SKIP_TOKENS = 6
-BI_PREP = "bi_prep"
 ASIDE_DELIMITERS = {"(": ")", "[": "]", "«": "»", "-": "-", "—": "—", "،": "،"}
 ASIDE_MAX_TOKENS = 8
 
@@ -109,11 +108,11 @@ def masdar_target_index(tokens, index, disambiguated):
 
         if word in SENTENCE_END:
             break
-        if disambiguated[position].get("pos") == "verb":
+        if disambiguated[position].get("pos") == VERB:
             break
 
         if word.isalpha():
-            if disambiguated[position].get("pos") == "noun":
+            if disambiguated[position].get("pos") == NOUN:
                 return position
             if fallback is None:
                 fallback = position
