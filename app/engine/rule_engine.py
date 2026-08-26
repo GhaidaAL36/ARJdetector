@@ -3,6 +3,9 @@ from app.text.preprocessor import preprocess
 from app.engine.analysis import get_pos_and_pattern_in_context
 from app.engine.tags import BI_PREP, NOUN, SENTENCE_END, VERB
 from app.engine.rule import (
+    is_described_complement,
+    is_emphatic_negation,
+    is_qam_trigger,
     describes_shakl,
     is_phrase_whitelisted,
     is_whitelisted_lemma,
@@ -166,6 +169,48 @@ def find_tam_matches(rules, whitelist, tokens, disambiguated):
     return matches
 
 
+def find_qam_matches(rules, whitelist, tokens, disambiguated):
+    trigger_lexes = rules.get("qam_trigger_lex")
+    if not trigger_lexes:
+        return []
+
+    emphasis_lexes = rules.get("qam_emphasis_lex", [])
+    mistagged = whitelist.get("qam_mistagged_surfaces", [])
+    negation_surfaces = whitelist.get("qam_negation_surfaces", [])
+    emphasis_surfaces = whitelist.get("qam_emphasis_surfaces", [])
+    matches = []
+
+    for index, _ in tokens:
+        if not is_qam_trigger(tokens, index, disambiguated, trigger_lexes, mistagged):
+            continue
+
+        complement = qam_complement_index(tokens, index, disambiguated)
+        if complement is None:
+            continue
+
+        if is_in_waw_chain(tokens, complement, disambiguated):
+            continue
+
+        if is_emphatic_negation(
+            tokens,
+            index,
+            complement,
+            disambiguated,
+            emphasis_lexes,
+            negation_surfaces,
+            emphasis_surfaces,
+        ):
+            continue
+
+        if is_described_complement(disambiguated, complement):
+            continue
+
+    return matches
+
+
+LEMMA_RULE_KEYS = ("tam_trigger_lex", "qam_trigger_lex")
+
+
 def analyze(path, whitelist_path, text):
     rules = reader(path)
     whitelist = reader(whitelist_path)
@@ -175,13 +220,15 @@ def analyze(path, whitelist_path, text):
         return build_response([])
 
     has_trigger = any(word.endswith(rules["trigger_word"]) for _, word in tokens)
-    if not has_trigger and not rules.get("tam_trigger_lex"):
+    has_lemma_rule = any(rules.get(key) for key in LEMMA_RULE_KEYS)
+    if not has_trigger and not has_lemma_rule:
         return build_response([])
 
     disambiguated = get_pos_and_pattern_in_context(tokens)
 
     found = find_bshakl_matches(rules, whitelist, tokens, disambiguated)
     found.extend(find_tam_matches(rules, whitelist, tokens, disambiguated))
+    found.extend(find_qam_matches(rules, whitelist, tokens, disambiguated))
     found.sort(key=lambda pair: pair[0])
 
     return build_response([match for _, match in found])
