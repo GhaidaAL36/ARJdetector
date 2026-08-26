@@ -1,12 +1,19 @@
 {
   "trigger_word": "بشكل",
+  "bshakl_rule_id": "بشكل",
   "tam_trigger_lex": "تم",
-  "qam_trigger_lex": [
-    "قام",
-    "قم",
-    "قوم"
-  ],
-  "qam_emphasis_lex": [
-    "أي"
-  ]
+  "tam_rule_id": "تم",
+  "qam": {
+    "rule_id": "قام بـ",
+    "trigger_lex": [
+      "قام",
+      "قم",
+      "قوم"
+    ],
+    "complement_proclitic": "bi_prep",
+    "complement_max_skip": 6,
+    "emphasis_lex": [
+      "أي"
+    ]
+  }
 }

@@ -56,12 +56,14 @@ def next_target_index(tokens, index):
     return None
 
 
-def qam_complement_index(tokens, index, disambiguated, max_skip=QAM_MAX_SKIP_TOKENS):
+def qam_complement_index(
+    tokens, index, disambiguated, max_skip=QAM_MAX_SKIP_TOKENS, proclitic=BI_PREP
+):
     limit = min(index + 1 + max_skip, len(tokens))
     for position in range(index + 1, limit):
         if tokens[position][1] in SENTENCE_END:
             return None
-        if disambiguated[position].get("prc1") == BI_PREP:
+        if disambiguated[position].get("prc1") == proclitic:
             return position
 
     return None
@@ -69,6 +71,7 @@ def qam_complement_index(tokens, index, disambiguated, max_skip=QAM_MAX_SKIP_TOK
 
 def find_bshakl_matches(rules, whitelist, tokens, disambiguated):
     trigger_word = rules["trigger_word"]
+    rule_id = rules.get("bshakl_rule_id", trigger_word)
     matches = []
 
     for index, word in tokens:
@@ -96,7 +99,9 @@ def find_bshakl_matches(rules, whitelist, tokens, disambiguated):
         if not describes_shakl(info):
             continue
 
-        matches.append((index, build_match(word, tokens[target_idx][1])))
+        matches.append(
+                (index, build_match(word, tokens[target_idx][1], rule_id))
+            )
 
     return matches
 
@@ -133,6 +138,7 @@ def find_tam_matches(rules, whitelist, tokens, disambiguated):
     if not trigger_lex:
         return []
 
+    rule_id = rules.get("tam_rule_id", trigger_lex)
     force_derived = whitelist.get("force_derived_verbs", {})
     force_intransitive = whitelist.get("force_intransitive_verbs", [])
     force_not_masdar = whitelist.get("force_not_masdar", [])
@@ -164,27 +170,34 @@ def find_tam_matches(rules, whitelist, tokens, disambiguated):
             continue
 
         if is_transitive_verb(verb, force_intransitive):
-            matches.append((index, build_tam_match(word, target)))
+            matches.append((index, build_tam_match(word, target, rule_id)))
 
     return matches
 
 
 def find_qam_matches(rules, whitelist, tokens, disambiguated):
-    trigger_lexes = rules.get("qam_trigger_lex")
+    spec = rules.get("qam") or {}
+    trigger_lexes = spec.get("trigger_lex")
     if not trigger_lexes:
         return []
 
-    emphasis_lexes = rules.get("qam_emphasis_lex", [])
-    mistagged = whitelist.get("qam_mistagged_surfaces", [])
-    negation_surfaces = whitelist.get("qam_negation_surfaces", [])
-    emphasis_surfaces = whitelist.get("qam_emphasis_surfaces", [])
+    emphasis_lexes = spec.get("emphasis_lex", [])
+    proclitic = spec.get("complement_proclitic", BI_PREP)
+    max_skip = spec.get("complement_max_skip", QAM_MAX_SKIP_TOKENS)
+
+    overrides = whitelist.get("qam") or {}
+    mistagged = overrides.get("mistagged_surfaces", [])
+    negation_surfaces = overrides.get("negation_surfaces", [])
+    emphasis_surfaces = overrides.get("emphasis_surfaces", [])
     matches = []
 
     for index, _ in tokens:
         if not is_qam_trigger(tokens, index, disambiguated, trigger_lexes, mistagged):
             continue
 
-        complement = qam_complement_index(tokens, index, disambiguated)
+        complement = qam_complement_index(
+            tokens, index, disambiguated, max_skip, proclitic
+        )
         if complement is None:
             continue
 
@@ -208,7 +221,7 @@ def find_qam_matches(rules, whitelist, tokens, disambiguated):
     return matches
 
 
-LEMMA_RULE_KEYS = ("tam_trigger_lex", "qam_trigger_lex")
+LEMMA_RULE_KEYS = ("tam_trigger_lex", "qam")
 
 
 def analyze(path, whitelist_path, text):

@@ -6,23 +6,19 @@ from app.engine.rule import (
 )
 
 
-BSHAKL_RULE = "بشكل"
-TAM_RULE = "تم"
 
-
-def build_match(trigger_word, word):
-
+def build_match(trigger_word, word, rule_id):
     return {
-        "rule": BSHAKL_RULE,
+        "rule": rule_id,
         "flagged_phrase": trigger_word + " " + word,
         "explanation": get_explanation(),
         "suggestion": get_suggestion(),
     }
 
 
-def build_tam_match(trigger_word, word):
+def build_tam_match(trigger_word, word, rule_id):
     return {
-        "rule": TAM_RULE,
+        "rule": rule_id,
         "flagged_phrase": trigger_word + " " + word,
         "explanation": get_tam_explanation(),
         "suggestion": get_tam_suggestion(),

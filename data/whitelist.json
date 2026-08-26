@@ -61,13 +61,15 @@
     "إعراض"
   ],
   "force_intransitive_verbs": [],
-  "qam_mistagged_surfaces": [
-    "نقم"
-  ],
-  "qam_negation_surfaces": [
-    "ما"
-  ],
-  "qam_emphasis_surfaces": [
-    "أية"
-  ]
+  "qam": {
+    "mistagged_surfaces": [
+      "نقم"
+    ],
+    "negation_surfaces": [
+      "ما"
+    ],
+    "emphasis_surfaces": [
+      "أية"
+    ]
+  }
 }
