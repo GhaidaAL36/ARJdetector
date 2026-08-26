@@ -63,5 +63,11 @@
   "force_intransitive_verbs": [],
   "qam_mistagged_surfaces": [
     "نقم"
+  ],
+  "qam_negation_surfaces": [
+    "ما"
+  ],
+  "qam_emphasis_surfaces": [
+    "أية"
   ]
 }

@@ -4,6 +4,7 @@ NOUN = "noun"
 ADJ = "adj"
 NOUN_PROP = "noun_prop"
 PART_NEG = "part_neg"
+NOUN_QUANT = "noun_quant"
 
 # --- proclitics ---
 AL_DET = "Al_det"

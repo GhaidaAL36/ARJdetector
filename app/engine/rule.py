@@ -4,6 +4,7 @@ from app.engine.tags import (
     DESCRIPTOR_POS,
     NO_PROCLITIC,
     NOUN,
+    NOUN_QUANT,
     PART_NEG,
     SENTENCE_END,
     VERB,
@@ -50,6 +51,37 @@ def is_described_complement(disambiguated, complement_index):
     if after >= len(disambiguated):
         return False
     return disambiguated[after].get("pos") == ADJ
+
+
+def is_emphatic_negation(
+    tokens,
+    trigger_index,
+    complement_index,
+    disambiguated,
+    emphasis_lexes,
+    negation_surfaces=None,
+    emphasis_surfaces=None,
+):
+    if trigger_index == 0 or complement_index is None:
+        return False
+
+    previous = tokens[trigger_index - 1][1]
+    negated = (
+        disambiguated[trigger_index - 1].get("pos") == PART_NEG
+        or previous in (negation_surfaces or ())
+    )
+    if not negated:
+        return False
+
+    complement = disambiguated[complement_index]
+    if (
+        complement.get("pos") == NOUN_QUANT
+        and complement.get("lex") in emphasis_lexes
+    ):
+        return True
+
+    surface = tokens[complement_index][1]
+    return surface.lstrip("و")[1:] in (emphasis_surfaces or ())
 
 
 def _waw_member_index(tokens, index, disambiguated):
