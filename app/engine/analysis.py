@@ -8,6 +8,15 @@ from app.text.normalize import normalize_lookup_key
 _mle = None
 _analyzer = None
 
+UNANALYSED = {
+    "pos": "",
+    "pattern": "",
+    "lex": "",
+    "prc0": "0",
+    "prc1": "0",
+    "prc2": "0",
+}
+
 
 def _get_mle():
     global _mle
@@ -30,6 +39,10 @@ def get_pos_and_pattern_in_context(tokens):
 
     results = []
     for entry in disambiguated:
+        if not entry.analyses:
+            results.append(dict(UNANALYSED))
+            continue
+
         top_analysis = entry.analyses[0].analysis
         pos = top_analysis.get("pos", "")
         pattern = dediac_ar(top_analysis.get("pattern", ""))

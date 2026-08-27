@@ -224,3 +224,38 @@ def test_lex_keeps_the_other_hamza_carriers():
         results = get_pos_and_pattern_in_context(tokens)
 
     assert results[0]["lex"] == "إصلاح"
+
+
+""" tokens CAMeL cannot analyse at all """
+
+
+def test_a_token_with_no_analyses_gets_an_inert_entry():
+    """CAMeL returns zero analyses for a standalone tatweel run. Reading
+    analyses[0] raised IndexError, which reached /analyze as a 500."""
+    from app.engine.analysis import UNANALYSED
+
+    entry = MagicMock()
+    entry.analyses = []
+
+    with patch("app.engine.analysis._mle") as mock_mle:
+        mock_mle.disambiguate.return_value = [entry]
+        results = get_pos_and_pattern_in_context([(0, "ـ")])
+
+    assert results == [UNANALYSED]
+
+
+def test_the_inert_entry_matches_no_rule_predicate():
+    """It must be skipped, not misread — every predicate tests a specific
+    value, and the placeholder matches none of them."""
+    from app.engine.analysis import UNANALYSED
+    from app.engine.rule import (
+        describes_shakl,
+        is_described_complement,
+        is_qam_trigger,
+        is_tam_trigger,
+    )
+
+    assert describes_shakl(UNANALYSED) is False
+    assert is_tam_trigger(UNANALYSED, "تم") is False
+    assert is_qam_trigger([(0, "ـ")], 0, [UNANALYSED], ["قام"], ["نقم"]) is False
+    assert is_described_complement([UNANALYSED, UNANALYSED], 0) is False

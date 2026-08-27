@@ -756,3 +756,21 @@ def test_real_analyze_still_flags_a_hamza_initial_masdar():
     result = analyze(rules_path, whitelist_path, "تم إغلاق الباب.")
 
     assert [m["flagged_phrase"] for m in result["matches"]] == ["تم إغلاق"]
+
+
+@pytest.mark.parametrize(
+    "sentence, phrases",
+    [
+        ("ــ قام الفريق بدراسة الظاهرة", []),
+        ("تم إغلاق الباب ـ فورا", ["تم إغلاق"]),
+        ("ــ 15 تموز: تم إغلاق الباب", ["تم إغلاق"]),
+        ("١ ـ ما الحكم", []),
+    ],
+)
+def test_real_analyze_survives_a_tatweel(sentence, phrases):
+    """Tatweel (ـ, U+0640) is ordinary Arabic typography — it appeared in 5 of
+    the first 3,000 sentences of a real news corpus. It used to raise
+    IndexError out of /analyze."""
+    result = analyze(rules_path, whitelist_path, sentence)
+
+    assert [m["flagged_phrase"] for m in result["matches"]] == phrases
