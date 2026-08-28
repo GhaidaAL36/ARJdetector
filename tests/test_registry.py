@@ -98,16 +98,17 @@ def test_find_qam_matches_is_off_without_its_config_key():
     assert find_qam_matches({}, _whitelist(), [(0, "قام")], [{}]) == []
 
 
-def test_find_qam_matches_abstains_until_the_collapse_table_exists():
-    """V4-13 wires the lookup. Until then every candidate that survives the
-    mechanical branches ABSTAINS, so v4 emits no match — abstain is unflagged."""
+def test_find_qam_matches_flags_a_surviving_candidate():
+    """Since the Case 3/4 reopening, a candidate that survives Cases 1/2/5 and
+    is not a listed result noun FLAGS — the abstain state is gone."""
     from app.engine.analysis import get_pos_and_pattern_in_context
     from app.text.preprocessor import preprocess
 
     tokens = preprocess("قام الباحث بدراسة الظاهرة")
     entries = get_pos_and_pattern_in_context(tokens)
 
-    assert find_qam_matches(RULES, WHITELIST, tokens, entries) == []
+    assert [m["flagged_phrase"] for _, m in
+            find_qam_matches(RULES, WHITELIST, tokens, entries)] == ["قام بدراسة"]
 
 
 """ v4 must not disturb v1 or v2 """
@@ -120,8 +121,8 @@ def test_find_qam_matches_abstains_until_the_collapse_table_exists():
         ("تم إغلاق الباب", ["تم إغلاق"]),
         ("تم التدقيق والمراجعة", []),
         ("اشترى خاتم الذهب", []),
-        ("قام الباحث بدراسة الظاهرة", []),
-        ("قام الباحث بدراسة الظاهرة بشكل جيد", ["بشكل جيد"]),
+        ("قام الباحث بدراسة الظاهرة", ["قام بدراسة"]),
+        ("قام الباحث بدراسة الظاهرة بشكل جيد", ["قام بدراسة", "بشكل جيد"]),
     ],
 )
 def test_real_analyze_with_all_three_rules_live(sentence, phrases):

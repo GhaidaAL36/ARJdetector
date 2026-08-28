@@ -22,29 +22,33 @@ def disambiguated(*poses):
             for pos in poses]
 
 
+def toks(n):
+    return [(i, f"w{i}") for i in range(n)]
+
+
 def test_adjective_after_the_complement_is_case_five():
     """«قامت الحكومة بإصلاح شامل» — nothing for the collapsed verb to take."""
-    assert is_described_complement(disambiguated("verb", "noun", "noun", "adj"), 2) is True
+    assert is_described_complement(toks(9), disambiguated("verb", "noun", "noun", "adj"), 2) is True
 
 
 def test_noun_after_the_complement_is_not_case_five():
     """«قام الفني بإصلاح الجهاز» — collapses cleanly, must stay flaggable."""
-    assert is_described_complement(disambiguated("verb", "noun", "noun", "noun"), 2) is False
+    assert is_described_complement(toks(9), disambiguated("verb", "noun", "noun", "noun"), 2) is False
 
 
 def test_preposition_after_the_complement_is_not_case_five():
     """«قام الوفد بجولة في المدينة» — في is prep, and the sentence is عرنجي."""
-    assert is_described_complement(disambiguated("verb", "noun", "noun", "prep"), 2) is False
+    assert is_described_complement(toks(9), disambiguated("verb", "noun", "noun", "prep"), 2) is False
 
 
 def test_complement_at_the_end_is_not_case_five():
     """«قام الجيش بالعملية» — no modifier at all; falls through to the table."""
-    assert is_described_complement(disambiguated("verb", "noun", "noun"), 2) is False
+    assert is_described_complement(toks(9), disambiguated("verb", "noun", "noun"), 2) is False
 
 
 def test_only_the_token_immediately_after_counts():
     """An adjective further along modifies something else."""
-    assert is_described_complement(disambiguated("verb", "noun", "noun", "adj"), 1) is False
+    assert is_described_complement(toks(9), disambiguated("verb", "noun", "noun", "adj"), 1) is False
 
 
 """ against real CAMeL """
@@ -63,7 +67,7 @@ def case_five_fires(sentence):
             complement = qam_complement_index(tokens, index, entries)
             if complement is None:
                 return None
-            return is_described_complement(entries, complement)
+            return is_described_complement(tokens, entries, complement)
     return None
 
 
@@ -102,7 +106,7 @@ def test_real_measured_on_the_context_grid():
     right = wrong = 0
     for row in GRID:
         if case_five_fires(row["الجملة"]):
-            if row["حكمي (راجعيه)"].strip() == "فصيح":
+            if row["حكمك"].strip() == "فصيح":
                 right += 1
             else:
                 wrong += 1
@@ -138,7 +142,7 @@ def test_real_analyzer_backstop_is_a_net_loss():
                 complement = qam_complement_index(tokens, index, entries)
                 if complement is None:
                     return None
-                if is_described_complement(entries, complement):
+                if is_described_complement(tokens, entries, complement):
                     return True
                 after = complement + 1
                 if after < len(tokens):
@@ -149,7 +153,7 @@ def test_real_analyzer_backstop_is_a_net_loss():
     right = wrong = 0
     for row in GRID:
         if with_backstop(row["الجملة"]):
-            if row["حكمي (راجعيه)"].strip() == "فصيح":
+            if row["حكمك"].strip() == "فصيح":
                 right += 1
             else:
                 wrong += 1

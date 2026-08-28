@@ -30,7 +30,13 @@ ALLOWED_OVERRIDE_KEYS = {
     "mistagged_surfaces",
     "negation_surfaces",
     "emphasis_surfaces",
+    "mistagged_adjectives",
+    "result_nouns",
 }
+
+#: The Sprint Plan's cap. If it is reached, that is a finding about the
+#: mechanism, not a reason to raise the cap.
+RESULT_NOUN_CAP = 20
 
 """ the shape """
 
@@ -59,21 +65,60 @@ def test_the_override_block_holds_only_the_known_lists():
 """ no answers in data/ """
 
 
-@pytest.mark.parametrize("name", sorted(ALLOWED_OVERRIDE_KEYS))
-def test_every_override_list_stays_bounded(name):
+@pytest.mark.parametrize(
+    "name", ["mistagged_surfaces", "negation_surfaces", "emphasis_surfaces"]
+)
+def test_every_camel_mistag_list_stays_bounded(name):
     """Each corrects one measured CAMeL mistag. If any grows, the mechanism is
     wrong — that is a finding, not a reason to add entries."""
     assert len(OVERRIDES[name]) <= 3, name
 
 
-def test_no_data_file_carries_a_light_noun_list():
-    """The distinction the whole rule turns on — is this مصدر an event or a
-    result — must never be answered by a list in data/. These are the words the
-    collapse table has to decide; none of them may appear in config."""
-    light = {"عملية", "حملة", "دور", "واجب", "جولة", "خطوة", "محاولة", "مسؤولية"}
-    blob = repr(RULES) + repr(WHITELIST)
+def test_the_result_noun_list_is_capped():
+    """REOPENED 2026-08-27. Twelve mechanisms failed to separate event from
+    result (see the decision record), so this became an explicit closed list.
+    The cap is what keeps it closed."""
+    assert len(OVERRIDES["result_nouns"]) <= RESULT_NOUN_CAP
 
-    assert not [word for word in light if word in blob]
+
+def test_the_mistagged_adjective_list_stays_bounded():
+    """Adjectives CAMeL returns as noun, which Case 5 would otherwise miss."""
+    assert len(OVERRIDES["mistagged_adjectives"]) <= 10
+
+
+def test_no_result_noun_would_silence_a_real_flag():
+    """THE SAFETY PROPERTY, replacing V4-8's blanket 'no nouns in data/'.
+
+    A word may be listed only if it never heads the complement of a gold FLAG
+    row. This is what a bare 'no lists' rule was standing in for, and it is
+    enforceable against the gold data instead of by prohibition."""
+    import csv
+    import io as _io
+
+    from app.engine.analysis import get_pos_and_pattern_in_context
+    from app.engine.rule_engine import qam_complement_index
+    from app.engine.rule import is_qam_trigger
+    from app.text.preprocessor import preprocess
+
+    spec, over = RULES["qam"], WHITELIST["qam"]
+    flagged_lexes = set()
+    with _io.open("doc/labelled_set.csv", encoding="utf-8-sig") as handle:
+        for row in csv.DictReader(handle):
+            if row.get("gold") != "FLAG":
+                continue
+            tokens = preprocess(row["sentence"])
+            entries = get_pos_and_pattern_in_context(tokens)
+            for index, _ in tokens:
+                if is_qam_trigger(
+                    tokens, index, entries, spec["trigger_lex"], over["mistagged_surfaces"]
+                ):
+                    complement = qam_complement_index(tokens, index, entries)
+                    if complement is not None:
+                        flagged_lexes.add(entries[complement]["lex"])
+                    break
+
+    overlap = sorted(set(over["result_nouns"]) & flagged_lexes)
+    assert overlap == [], f"these entries would silence a gold FLAG row: {overlap}"
 
 
 """ the tool must work with the overrides empty """
@@ -87,7 +132,8 @@ def test_the_rule_runs_with_every_override_list_empty():
     entries = get_pos_and_pattern_in_context(tokens)
     stripped = {"qam": {key: [] for key in ALLOWED_OVERRIDE_KEYS}}
 
-    assert find_qam_matches(RULES, stripped, tokens, entries) == []
+    assert [m["flagged_phrase"] for _, m in find_qam_matches(
+        RULES, stripped, tokens, entries)] == ["قام بدراسة"]
 
 
 def test_the_rule_is_off_when_its_block_is_absent():

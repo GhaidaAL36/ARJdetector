@@ -258,4 +258,6 @@ def test_the_inert_entry_matches_no_rule_predicate():
     assert describes_shakl(UNANALYSED) is False
     assert is_tam_trigger(UNANALYSED, "تم") is False
     assert is_qam_trigger([(0, "ـ")], 0, [UNANALYSED], ["قام"], ["نقم"]) is False
-    assert is_described_complement([UNANALYSED, UNANALYSED], 0) is False
+    assert is_described_complement(
+        [(0, "ـ"), (1, "ـ")], [UNANALYSED, UNANALYSED], 0
+    ) is False
