@@ -63,35 +63,15 @@ def is_described_complement(
     return tokens[after][1] in (mistagged_adjectives or ())
 
 
-def is_emphatic_negation(
-    tokens,
-    trigger_index,
-    complement_index,
-    disambiguated,
-    emphasis_lexes,
-    negation_surfaces=None,
-    emphasis_surfaces=None,
-):
-    if trigger_index == 0 or complement_index is None:
-        return False
-
-    previous = tokens[trigger_index - 1][1]
-    negated = (
-        disambiguated[trigger_index - 1].get("pos") == PART_NEG
-        or previous in (negation_surfaces or ())
-    )
-    if not negated:
-        return False
-
-    complement = disambiguated[complement_index]
-    if (
-        complement.get("pos") == NOUN_QUANT
-        and complement.get("lex") in emphasis_lexes
+def complement_head_index(disambiguated, complement_index):
+    if complement_index is None:
+        return None
+    nxt = complement_index + 1
+    if disambiguated[complement_index].get("pos") == NOUN_QUANT and nxt < len(
+        disambiguated
     ):
-        return True
-
-    surface = tokens[complement_index][1]
-    return surface.lstrip("و")[1:] in (emphasis_surfaces or ())
+        return nxt
+    return complement_index
 
 
 def _waw_member_index(tokens, index, disambiguated):

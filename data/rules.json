@@ -11,9 +11,6 @@
       "قوم"
     ],
     "complement_proclitic": "bi_prep",
-    "complement_max_skip": 6,
-    "emphasis_lex": [
-      "أي"
-    ]
+    "complement_max_skip": 6
   }
 }

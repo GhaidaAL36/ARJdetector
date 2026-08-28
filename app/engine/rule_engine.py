@@ -4,7 +4,7 @@ from app.engine.analysis import get_pos_and_pattern_in_context
 from app.engine.tags import BI_PREP, NOUN, SENTENCE_END, VERB
 from app.engine.rule import (
     is_described_complement,
-    is_emphatic_negation,
+    complement_head_index,
     is_qam_trigger,
     is_result_noun,
     get_explanation,
@@ -204,7 +204,6 @@ def find_qam_matches(rules, whitelist, tokens, disambiguated):
     if not trigger_lexes:
         return []
 
-    emphasis_lexes = spec.get("emphasis_lex", [])
     proclitic = spec.get("complement_proclitic", BI_PREP)
     max_skip = spec.get("complement_max_skip", QAM_MAX_SKIP_TOKENS)
 
@@ -212,8 +211,6 @@ def find_qam_matches(rules, whitelist, tokens, disambiguated):
 
     overrides = whitelist.get("qam") or {}
     mistagged = overrides.get("mistagged_surfaces", [])
-    negation_surfaces = overrides.get("negation_surfaces", [])
-    emphasis_surfaces = overrides.get("emphasis_surfaces", [])
     mistagged_adjectives = overrides.get("mistagged_adjectives", [])
     result_nouns = overrides.get("result_nouns", [])
     matches = []
@@ -231,23 +228,14 @@ def find_qam_matches(rules, whitelist, tokens, disambiguated):
         if is_in_waw_chain(tokens, complement, disambiguated):
             continue
 
-        if is_emphatic_negation(
-            tokens,
-            index,
-            complement,
-            disambiguated,
-            emphasis_lexes,
-            negation_surfaces,
-            emphasis_surfaces,
-        ):
-            continue
+        head = complement_head_index(disambiguated, complement)
 
         if is_described_complement(
-            tokens, disambiguated, complement, mistagged_adjectives
+            tokens, disambiguated, head, mistagged_adjectives
         ):
             continue
 
-        if is_result_noun(disambiguated, complement, result_nouns):
+        if is_result_noun(disambiguated, head, result_nouns):
             continue
 
         matches.append(
