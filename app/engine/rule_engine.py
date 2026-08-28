@@ -6,6 +6,13 @@ from app.engine.rule import (
     is_described_complement,
     is_emphatic_negation,
     is_qam_trigger,
+    is_result_noun,
+    get_explanation,
+    get_qam_explanation,
+    get_qam_suggestion,
+    get_suggestion,
+    get_tam_explanation,
+    get_tam_suggestion,
     describes_shakl,
     is_phrase_whitelisted,
     is_whitelisted_lemma,
@@ -16,7 +23,7 @@ from app.engine.rule import (
 )
 from app.engine.derivation import derive_base_verb, is_trusted_derivation
 from app.engine.dictionary import is_masdar, is_transitive_verb
-from app.engine.match import build_match, build_tam_match, build_response
+from app.engine.match import build_match, build_response
 
 MAX_SKIP_TOKENS = 3
 QAM_MAX_SKIP_TOKENS = 6
@@ -100,7 +107,16 @@ def find_bshakl_matches(rules, whitelist, tokens, disambiguated):
             continue
 
         matches.append(
-                (index, build_match(word, tokens[target_idx][1], rule_id))
+                (
+                    index,
+                    build_match(
+                        word,
+                        tokens[target_idx][1],
+                        rule_id,
+                        get_explanation(),
+                        get_suggestion(),
+                    ),
+                )
             )
 
     return matches
@@ -170,7 +186,14 @@ def find_tam_matches(rules, whitelist, tokens, disambiguated):
             continue
 
         if is_transitive_verb(verb, force_intransitive):
-            matches.append((index, build_tam_match(word, target, rule_id)))
+            matches.append(
+                (
+                    index,
+                    build_match(
+                        word, target, rule_id, get_tam_explanation(), get_tam_suggestion()
+                    ),
+                )
+            )
 
     return matches
 
@@ -185,10 +208,14 @@ def find_qam_matches(rules, whitelist, tokens, disambiguated):
     proclitic = spec.get("complement_proclitic", BI_PREP)
     max_skip = spec.get("complement_max_skip", QAM_MAX_SKIP_TOKENS)
 
+    rule_id = spec.get("rule_id", trigger_lexes[0])
+
     overrides = whitelist.get("qam") or {}
     mistagged = overrides.get("mistagged_surfaces", [])
     negation_surfaces = overrides.get("negation_surfaces", [])
     emphasis_surfaces = overrides.get("emphasis_surfaces", [])
+    mistagged_adjectives = overrides.get("mistagged_adjectives", [])
+    result_nouns = overrides.get("result_nouns", [])
     matches = []
 
     for index, _ in tokens:
@@ -215,8 +242,26 @@ def find_qam_matches(rules, whitelist, tokens, disambiguated):
         ):
             continue
 
-        if is_described_complement(disambiguated, complement):
+        if is_described_complement(
+            tokens, disambiguated, complement, mistagged_adjectives
+        ):
             continue
+
+        if is_result_noun(disambiguated, complement, result_nouns):
+            continue
+
+        matches.append(
+            (
+                index,
+                build_match(
+                    tokens[index][1],
+                    tokens[complement][1],
+                    rule_id,
+                    get_qam_explanation(),
+                    get_qam_suggestion(),
+                ),
+            )
+        )
 
     return matches
 

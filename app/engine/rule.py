@@ -46,11 +46,21 @@ def _is_negated_qam_mistag(tokens, index, disambiguated, mistagged_surfaces):
     return disambiguated[index - 1]["pos"] == PART_NEG
 
 
-def is_described_complement(disambiguated, complement_index):
+def is_result_noun(disambiguated, complement_index, result_nouns):
+    if complement_index is None or not result_nouns:
+        return False
+    return disambiguated[complement_index].get("lex") in result_nouns
+
+
+def is_described_complement(
+    tokens, disambiguated, complement_index, mistagged_adjectives=None
+):
     after = complement_index + 1
     if after >= len(disambiguated):
         return False
-    return disambiguated[after].get("pos") == ADJ
+    if disambiguated[after].get("pos") == ADJ:
+        return True
+    return tokens[after][1] in (mistagged_adjectives or ())
 
 
 def is_emphatic_negation(
@@ -160,3 +170,11 @@ def get_tam_suggestion():
 
 def get_tam_explanation():
     return "مبني للمجهول مُعرَّب"
+
+
+def get_qam_suggestion():
+    return "يمكن استبدال «قام بـ» بالفعل المباشر"
+
+
+def get_qam_explanation():
+    return "فعل مساعد زائد"
