@@ -1,27 +1,9 @@
-from app.engine.rule import (
-    get_explanation,
-    get_suggestion,
-    get_tam_explanation,
-    get_tam_suggestion,
-)
-
-
-
-def build_match(trigger_word, word, rule_id):
+def build_match(trigger_word, target, rule_id, explanation, suggestion):
     return {
         "rule": rule_id,
-        "flagged_phrase": trigger_word + " " + word,
-        "explanation": get_explanation(),
-        "suggestion": get_suggestion(),
-    }
-
-
-def build_tam_match(trigger_word, word, rule_id):
-    return {
-        "rule": rule_id,
-        "flagged_phrase": trigger_word + " " + word,
-        "explanation": get_tam_explanation(),
-        "suggestion": get_tam_suggestion(),
+        "flagged_phrase": trigger_word + " " + target,
+        "explanation": explanation,
+        "suggestion": suggestion,
     }
 
 

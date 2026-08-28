@@ -1,8 +1,22 @@
-from app.engine.match import build_match, build_tam_match, build_response, clean_text
+from app.engine.match import build_match, build_response, clean_text
+from app.engine.rule import (
+    get_explanation,
+    get_suggestion,
+    get_tam_explanation,
+    get_tam_suggestion,
+)
+
+
+def bshakl(word, target, rule_id="بشكل"):
+    return build_match(word, target, rule_id, get_explanation(), get_suggestion())
+
+
+def tam(word, target, rule_id="تم"):
+    return build_match(word, target, rule_id, get_tam_explanation(), get_tam_suggestion())
 
 
 def test_build_match_returns_correct_shape():
-    result = build_match("بشكل", "جميل", "بشكل")
+    result = bshakl("بشكل", "جميل")
 
     assert result["rule"] == "بشكل"
     assert result["flagged_phrase"] == "بشكل جميل"
@@ -11,7 +25,7 @@ def test_build_match_returns_correct_shape():
 
 
 def test_build_tam_match_returns_correct_shape():
-    result = build_tam_match("تم", "استلام", "تم")
+    result = tam("تم", "استلام")
 
     assert result["rule"] == "تم"
     assert result["flagged_phrase"] == "تم استلام"
@@ -21,8 +35,8 @@ def test_build_tam_match_returns_correct_shape():
 def test_build_tam_match_carries_its_own_explanation():
     """The تمّ rule is a different problem from بشكل and must not reuse its
     wording."""
-    assert build_tam_match("تم", "استلام", "تم")["explanation"] != build_match(
-        "بشكل", "جميل", "بشكل"
+    assert tam("تم", "استلام")["explanation"] != bshakl(
+        "بشكل", "جميل"
     )["explanation"]
 
 
@@ -44,5 +58,5 @@ def test_build_response_shape_is_the_same_when_empty():
 def test_the_rule_id_comes_from_the_caller_not_a_constant():
     """rule_id is config now — all three rules declare it the same way, and
     V4-15 surfaces it in the API response."""
-    assert build_match("بشكل", "جميل", "X")["rule"] == "X"
-    assert build_tam_match("تم", "استلام", "Y")["rule"] == "Y"
+    assert bshakl("بشكل", "جميل", "X")["rule"] == "X"
+    assert tam("تم", "استلام", "Y")["rule"] == "Y"
