@@ -14,12 +14,12 @@ import io
 
 import pytest
 
+import goldsets
+
 from app.config import rules_path, whitelist_path
-from app.engine.analysis import get_pos_and_pattern_in_context
 from app.engine.rule import is_result_noun
 from app.engine.rule_engine import analyze
 from app.rules.rule_loader import reader
-from app.text.preprocessor import preprocess
 
 RULE_ID = reader(rules_path)["qam"]["rule_id"]
 RESULT_NOUNS = reader(whitelist_path)["qam"]["result_nouns"]
@@ -58,8 +58,9 @@ def test_no_complement_is_not_a_result_noun():
 """ the two gold sets """
 
 
+@goldsets.needs("labelled_set.csv")
 def test_real_labelled_set_is_fully_correct():
-    rows = [r for r in csv.DictReader(io.open("doc/labelled_set.csv", encoding="utf-8-sig"))
+    rows = [r for r in goldsets.rows("labelled_set.csv")
             if r.get("gold") in ("FLAG", "SILENT", "NO-TRIGGER")]
     wrong = [(r["gold"], r["sentence"]) for r in rows
              if qam_flags(r["sentence"]) != (r["gold"] == "FLAG")]
@@ -72,7 +73,7 @@ def test_real_context_grid_has_zero_missed_arnajiyya():
     """THE STANDING INVARIANT. A false flag is visible and arguable; a missed
     flag is invisible and the writer never learns the tool had nothing to say."""
     missed = []
-    for r in csv.DictReader(io.open("doc/context_test.csv", encoding="utf-8-sig")):
+    for r in goldsets.rows("context_test.csv"):
         if not r.get("الجملة"):
             continue
         if r["حكمك"].strip() == "عرنجي" and not qam_flags(r["الجملة"]):
@@ -84,7 +85,7 @@ def test_real_context_grid_has_zero_missed_arnajiyya():
 def test_real_context_grid_has_no_false_flags():
     """The جولة false flag is gone: «بجولة مفاوضات» is a licensed pair."""
     false_flags = [r["الجملة"]
-                   for r in csv.DictReader(io.open("doc/context_test.csv", encoding="utf-8-sig"))
+                   for r in goldsets.rows("context_test.csv")
                    if r.get("الجملة") and r["حكمك"].strip() == "فصيح"
                    and qam_flags(r["الجملة"])]
 
@@ -245,3 +246,70 @@ def test_the_rule_works_with_the_pair_list_empty():
     from app.engine.rule import is_licensed_pair
 
     assert is_licensed_pair([{"lex": "جولة"}, {"lex": "مفاوضة"}], 0, {}) is False
+
+
+""" §2.1 duty nouns — a KNOWN-INCOMPLETE list, grows only from observed text """
+
+DUTY = reader(whitelist_path)["qam"]["duty_nouns"]
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    ["قام القاضي بالعدل بين الخصوم", "قام الأب برعاية أبنائه",
+     "قام الحارس بحراسة المرمى"],
+)
+def test_real_duty_nouns_are_silent(sentence):
+    """Found by Ghaida's 70-sentence manual run, 2026-08-28 — the only three
+    false positives in that set. قام بـ here means النهوض بالمسؤولية."""
+    assert qam_flags(sentence) is False
+
+
+def test_duty_nouns_are_separate_from_result_nouns():
+    """Different criteria, so different lists. result_nouns = no derived verb;
+    duty_nouns all HAVE verbs (عَدَلَ، رَعَى، حَرَسَ) and are فصيح for the
+    sense. Merging them would quietly turn a bounded list into an open one."""
+    assert set(DUTY).isdisjoint(set(RESULT_NOUNS))
+
+
+def test_no_duty_noun_would_silence_a_real_flag():
+    """Same safety property as result_nouns: nothing on this list may appear as
+    the complement of a gold FLAG row."""
+    import csv as _csv
+    import io as _io
+
+    from app.engine.analysis import get_pos_and_pattern_in_context
+    from app.engine.rule import complement_head_index, is_qam_trigger
+    from app.engine.rule_engine import qam_complement_index
+    from app.text.preprocessor import preprocess
+
+    spec, over = reader(rules_path)["qam"], reader(whitelist_path)["qam"]
+    flagged = set()
+    for row in goldsets.rows("labelled_set.csv"):
+            if row.get("gold") != "FLAG":
+                continue
+            tokens = preprocess(row["sentence"])
+            entries = get_pos_and_pattern_in_context(tokens)
+            for index, _ in tokens:
+                if is_qam_trigger(tokens, index, entries, spec["trigger_lex"],
+                                  over["mistagged_surfaces"]):
+                    c = qam_complement_index(tokens, index, entries)
+                    h = complement_head_index(entries, c)
+                    if h is not None:
+                        flagged.add(entries[h]["lex"])
+                    break
+
+    assert sorted(set(DUTY) & flagged) == []
+
+
+def test_the_duty_list_stays_small_and_observed():
+    """It cannot be completed — whether a مصدر denotes a duty is meaning, and
+    the sentence is structurally identical to an عرنجي one. Entries come from
+    real sentences seen flagged wrongly, never from enumerating the language.
+    If this grows past a handful, that is a finding about the mechanism."""
+    assert len(DUTY) <= 15
+
+
+def test_the_rule_works_with_the_duty_list_empty():
+    from app.engine.rule import is_duty_noun
+
+    assert is_duty_noun([{"lex": "رعاية"}], 0, []) is False

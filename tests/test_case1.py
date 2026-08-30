@@ -13,6 +13,8 @@ import io
 
 import pytest
 
+import goldsets
+
 from app.config import rules_path, whitelist_path
 from app.engine.analysis import get_pos_and_pattern_in_context
 from app.engine.rule import is_in_waw_chain, is_qam_trigger
@@ -52,8 +54,9 @@ def test_real_any_masdar_series_is_silent(sentence):
     assert analyze(rules_path, whitelist_path, sentence)["flagged"] is False
 
 
+@goldsets.needs("labelled_set.csv")
 def test_real_the_labelled_set_series_row_is_silent_again():
-    rows = [r for r in csv.DictReader(io.open("doc/labelled_set.csv", encoding="utf-8-sig"))
+    rows = [r for r in goldsets.rows("labelled_set.csv")
             if "وتعويض المتضررين" in (r.get("sentence") or "")]
 
     assert [r["gold"] for r in rows] == ["SILENT"]

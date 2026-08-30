@@ -1,4 +1,4 @@
-from app.engine.match import build_match, build_response, clean_text
+from app.engine.match import build_match, build_response
 from app.engine.rule import (
     get_explanation,
     get_suggestion,
@@ -39,9 +39,6 @@ def test_build_tam_match_carries_its_own_explanation():
         "بشكل", "جميل"
     )["explanation"]
 
-
-def test_clean_text_returns_correct_shape():
-    assert clean_text() == {"flagged": False, "matches": []}
 
 
 def test_build_response_wraps_matches():

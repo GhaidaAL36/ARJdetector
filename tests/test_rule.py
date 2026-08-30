@@ -2,7 +2,6 @@ import pytest
 from app.engine.rule import (
     is_tam_trigger,
     is_in_waw_chain,
-    is_force_intransitive_masdar,
     is_whitelisted_lemma,
     is_phrase_whitelisted,
     describes_shakl,

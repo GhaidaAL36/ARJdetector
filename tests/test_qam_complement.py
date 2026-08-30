@@ -4,6 +4,8 @@ import io
 
 import pytest
 
+import goldsets
+
 from app.config import rules_path, whitelist_path
 from app.engine.analysis import get_pos_and_pattern_in_context
 from app.engine.rule import is_qam_trigger
@@ -128,8 +130,7 @@ def complement_of(sentence):
 
 
 def labelled_rows():
-    with io.open("doc/labelled_set.csv", encoding="utf-8-sig") as handle:
-        return [row for row in csv.DictReader(handle) if row.get("sentence")]
+    return [row for row in goldsets.rows("labelled_set.csv") if row.get("sentence")]
 
 
 BI_PREP_ROWS = [r for r in labelled_rows() if r["gold"] == "bi_prep"]

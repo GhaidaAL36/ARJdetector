@@ -8,6 +8,8 @@ noun list fail loudly rather than happen quietly.
 """
 import pytest
 
+import goldsets
+
 from app.config import rules_path, whitelist_path
 from app.engine.rule_engine import find_qam_matches
 from app.rules.rule_loader import reader
@@ -29,6 +31,7 @@ ALLOWED_OVERRIDE_KEYS = {
     "mistagged_surfaces",
     "result_nouns",
     "licensed_pairs",
+    "duty_nouns",
 }
 
 #: The Sprint Plan capped the *override* list at 20 — an escape hatch for cases
@@ -96,8 +99,7 @@ def test_no_result_noun_would_silence_a_real_flag():
 
     spec, over = RULES["qam"], WHITELIST["qam"]
     flagged_lexes = set()
-    with _io.open("doc/labelled_set.csv", encoding="utf-8-sig") as handle:
-        for row in csv.DictReader(handle):
+    for row in goldsets.rows("labelled_set.csv"):
             if row.get("gold") != "FLAG":
                 continue
             tokens = preprocess(row["sentence"])
