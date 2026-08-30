@@ -1,5 +1,4 @@
 from app.engine.tags import (
-    ADJ,
     AL_DET,
     DESCRIPTOR_POS,
     NO_PROCLITIC,
@@ -50,6 +49,12 @@ def is_result_noun(disambiguated, complement_index, result_nouns):
     if complement_index is None or not result_nouns:
         return False
     return disambiguated[complement_index].get("lex") in result_nouns
+
+
+def is_duty_noun(disambiguated, head_index, duty_nouns):
+    if head_index is None or not duty_nouns:
+        return False
+    return disambiguated[head_index].get("lex") in duty_nouns
 
 
 def is_licensed_pair(disambiguated, head_index, licensed_pairs):

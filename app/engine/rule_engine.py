@@ -5,6 +5,7 @@ from app.engine.tags import BI_PREP, NOUN, SENTENCE_END, VERB
 from app.engine.rule import (
     complement_head_index,
     is_qam_trigger,
+    is_duty_noun,
     is_licensed_pair,
     is_result_noun,
     get_explanation,
@@ -213,6 +214,7 @@ def find_qam_matches(rules, whitelist, tokens, disambiguated):
     mistagged = overrides.get("mistagged_surfaces", [])
     result_nouns = overrides.get("result_nouns", [])
     licensed_pairs = overrides.get("licensed_pairs", {})
+    duty_nouns = overrides.get("duty_nouns", [])
     matches = []
 
     for index, _ in tokens:
@@ -234,6 +236,9 @@ def find_qam_matches(rules, whitelist, tokens, disambiguated):
             continue
 
         if is_licensed_pair(disambiguated, head, licensed_pairs):
+            continue
+
+        if is_duty_noun(disambiguated, head, duty_nouns):
             continue
 
         matches.append(
