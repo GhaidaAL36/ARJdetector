@@ -29,21 +29,6 @@ flag something you disagree with than stay silent about real عرنجية. A fal
 flag is visible and you can argue with it; a missed one is invisible and you
 never learn the tool had something to say.
 
-## What it cannot do
-
-Some Arabic distinctions are about **meaning**, not structure, and two sentences
-that mean different things can look identical to the analyser:
-
-```
-قام الأب برعاية أبنائه       ← fine: the father shoulders a responsibility
-قام الباحث بدراسة الظاهرة    ← redundant: the researcher simply did something
-```
-
-Same shape, opposite verdicts, and Arabic does not mark the difference anywhere
-a program can read. Cases like these are handled by short, hand-checked lists
-that grow only when a real sentence is seen judged wrongly — never by trying to
-enumerate the language. `CLAUDE.md` records which lists exist, what each one is
-for, and what has been tried and ruled out.
 
 ## Requirements
 
