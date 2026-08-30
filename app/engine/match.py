@@ -9,7 +9,3 @@ def build_match(trigger_word, target, rule_id, explanation, suggestion):
 
 def build_response(matches):
     return {"flagged": bool(matches), "matches": matches}
-
-
-def clean_text():
-    return build_response([])
