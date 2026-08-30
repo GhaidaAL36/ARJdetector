@@ -33,3 +33,23 @@ htmlcov/
 
 # Logs
 *.log
+
+# personal test sentences
+doc/context_test.csv
+doc/heldout_eval.csv 
+doc/labelled_set.csv 
+doc/result_nouns_review.csv
+
+#claude
+CLAUDE.md 
+# personal test sentences — labelled sets used by the local test suite.
+# Tests that read these skip cleanly when the files are absent.
+doc/context_test.csv
+doc/heldout_eval.csv
+doc/labelled_set.csv
+doc/result_nouns_review.csv
+doc/my_sentences.txt
+ARJdetector_flow.md 
+
+# claude
+CLAUDE.md
