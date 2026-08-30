@@ -52,15 +52,16 @@ def is_result_noun(disambiguated, complement_index, result_nouns):
     return disambiguated[complement_index].get("lex") in result_nouns
 
 
-def is_described_complement(
-    tokens, disambiguated, complement_index, mistagged_adjectives=None
-):
-    after = complement_index + 1
-    if after >= len(disambiguated):
+def is_licensed_pair(disambiguated, head_index, licensed_pairs):
+    if head_index is None or not licensed_pairs:
         return False
-    if disambiguated[after].get("pos") == ADJ:
-        return True
-    return tokens[after][1] in (mistagged_adjectives or ())
+    licensed = licensed_pairs.get(disambiguated[head_index].get("lex"))
+    if not licensed:
+        return False
+    following = head_index + 1
+    if following >= len(disambiguated):
+        return False
+    return disambiguated[following].get("lex") in licensed
 
 
 def complement_head_index(disambiguated, complement_index):
@@ -90,21 +91,34 @@ def _waw_member_index(tokens, index, disambiguated):
     return None
 
 
+def _first_alpha(tokens, disambiguated, start, stop):
+    for index in range(start, stop):
+        if tokens[index][1] in SENTENCE_END:
+            return None
+        if disambiguated[index].get("pos") == VERB:
+            return None
+        if tokens[index][1].isalpha():
+            return index
+    return None
+
+
 def is_in_waw_chain(tokens, target_index, disambiguated):
     for index in range(target_index + 1, len(tokens)):
         word = tokens[index][1]
-        info = disambiguated[index]
-
         if word in SENTENCE_END:
             return False
-        if info.get("pos") == VERB:
+        if disambiguated[index].get("pos") == VERB:
             return False
 
-        if _waw_member_index(tokens, index, disambiguated) is not None:
-            return True
+        member = _waw_member_index(tokens, index, disambiguated)
+        if member is None:
+            continue
 
-        if word.isalpha():
-            return False
+        head_has_object = _first_alpha(tokens, disambiguated, target_index + 1, index) is not None
+        member_has_object = _first_alpha(
+            tokens, disambiguated, member + 1, len(tokens)
+        ) is not None
+        return head_has_object == member_has_object
 
     return False
 

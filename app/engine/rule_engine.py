@@ -3,9 +3,9 @@ from app.text.preprocessor import preprocess
 from app.engine.analysis import get_pos_and_pattern_in_context
 from app.engine.tags import BI_PREP, NOUN, SENTENCE_END, VERB
 from app.engine.rule import (
-    is_described_complement,
     complement_head_index,
     is_qam_trigger,
+    is_licensed_pair,
     is_result_noun,
     get_explanation,
     get_qam_explanation,
@@ -211,8 +211,8 @@ def find_qam_matches(rules, whitelist, tokens, disambiguated):
 
     overrides = whitelist.get("qam") or {}
     mistagged = overrides.get("mistagged_surfaces", [])
-    mistagged_adjectives = overrides.get("mistagged_adjectives", [])
     result_nouns = overrides.get("result_nouns", [])
+    licensed_pairs = overrides.get("licensed_pairs", {})
     matches = []
 
     for index, _ in tokens:
@@ -230,12 +230,10 @@ def find_qam_matches(rules, whitelist, tokens, disambiguated):
 
         head = complement_head_index(disambiguated, complement)
 
-        if is_described_complement(
-            tokens, disambiguated, head, mistagged_adjectives
-        ):
+        if is_result_noun(disambiguated, head, result_nouns):
             continue
 
-        if is_result_noun(disambiguated, head, result_nouns):
+        if is_licensed_pair(disambiguated, head, licensed_pairs):
             continue
 
         matches.append(
