@@ -248,16 +248,8 @@ def test_the_inert_entry_matches_no_rule_predicate():
     """It must be skipped, not misread — every predicate tests a specific
     value, and the placeholder matches none of them."""
     from app.engine.analysis import UNANALYSED
-    from app.engine.rule import (
-        describes_shakl,
-        is_described_complement,
-        is_qam_trigger,
-        is_tam_trigger,
-    )
+    from app.engine.rule import describes_shakl, is_qam_trigger, is_tam_trigger
 
     assert describes_shakl(UNANALYSED) is False
     assert is_tam_trigger(UNANALYSED, "تم") is False
     assert is_qam_trigger([(0, "ـ")], 0, [UNANALYSED], ["قام"], ["نقم"]) is False
-    assert is_described_complement(
-        [(0, "ـ"), (1, "ـ")], [UNANALYSED, UNANALYSED], 0
-    ) is False

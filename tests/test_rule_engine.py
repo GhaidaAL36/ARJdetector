@@ -495,24 +495,24 @@ def test_real_analyze_still_flags_when_a_verb_opens_a_new_clause():
     assert [m["flagged_phrase"] for m in result["matches"]] == ["تم إغلاق"]
 
 
-def test_real_analyze_flags_a_chain_whose_members_carry_objects():
-    """RELABELLED 2026-08-26. Each مصدر here governs its own object, so the
-    whole thing collapses — «رُوجعت التقاريرُ ودُقّقت الحساباتُ واعتُمدت
-    الميزانيةُ» — and تمّ is redundant. This previously asserted silence."""
+def test_real_analyze_passes_a_chain_whose_members_carry_objects():
+    """REVERTED 2026-08-28 (§2.3): a مصدر series is فصيح however its objects are
+    arranged. This asserted a flag between 2026-08-26 and 2026-08-28."""
     result = analyze(
         rules_path,
         whitelist_path,
         "تم مراجعة التقارير، وتدقيق الحسابات، واعتماد الميزانية.",
     )
 
-    assert [m["flagged_phrase"] for m in result["matches"]] == ["تم مراجعة"]
+    assert result == {"flagged": False, "matches": []}
 
 
-def test_real_analyze_passes_waw_chain_with_wa_sub_reading():
-    """«تم إغلاق وفتح الباب» — CAMeL reads this و as wa_sub, not wa_part."""
+def test_real_analyze_flags_masdars_sharing_one_object():
+    """«تم إغلاق وفتح الباب» — قاعدة 2026-08-28: مصادر sharing one مضاف إليه is
+    عرنجي and grammatically wrong. This asserted silence until then."""
     result = analyze(rules_path, whitelist_path, "تم إغلاق وفتح الباب")
 
-    assert result == {"flagged": False, "matches": []}
+    assert [m["flagged_phrase"] for m in result["matches"]] == ["تم إغلاق"]
 
 
 """ masdar-vs-regular-noun gate """

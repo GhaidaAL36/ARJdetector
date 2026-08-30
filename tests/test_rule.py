@@ -250,24 +250,21 @@ def test_is_in_waw_chain_false_at_end_of_tokens():
     assert is_in_waw_chain(tokens, 1, disambiguated) is False
 
 
-def test_is_in_waw_chain_false_when_the_head_governs_an_object():
-    """«تم إغلاق الباب وفتح النافذة» — each مصدر carries its own object, so the
-    whole thing collapses to «أُغلق البابُ وفُتحت النافذةُ» and is عرنجية.
-    The head's object الباب is what rules the chain out."""
+def test_is_in_waw_chain_true_even_when_the_head_governs_an_object():
+    """§2.3 (2026-08-28) — «قام الفريق بفحص الموقع، وتقييم الأضرار» is فصيح even
+    though each مصدر carries its own object. This previously asserted False."""
     tokens = [(0, "تم"), (1, "إغلاق"), (2, "الباب"), (3, "وفتح"), (4, "النافذة")]
     disambiguated = [_info(), _info(), _info(), _info("wa_conj"), _info()]
 
-    assert is_in_waw_chain(tokens, 1, disambiguated) is False
+    assert is_in_waw_chain(tokens, 1, disambiguated) is True
 
-
-def test_is_in_waw_chain_false_when_the_waw_coordinates_the_object():
-    """«تم إغلاق الباب والنافذة» — the و joins the OBJECT, not a second مصدر.
-    The head's object already rules it out; no definiteness check needed."""
+def test_is_in_waw_chain_false_when_only_the_head_has_an_object():
+    """«تم إغلاق الباب والنافذة» — asymmetric, so والنافذة is a second OBJECT,
+    not a second مصدر. The construction collapses and must flag."""
     tokens = [(0, "تم"), (1, "إغلاق"), (2, "الباب"), (3, "والنافذة")]
     disambiguated = [_info(), _info(), _info(), _info("wa_conj")]
 
     assert is_in_waw_chain(tokens, 1, disambiguated) is False
-
 
 def test_is_in_waw_chain_does_not_stop_at_a_comma():
     """A comma between bare members does not end the chain."""

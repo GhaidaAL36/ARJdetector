@@ -81,46 +81,167 @@ def test_real_context_grid_has_zero_missed_arnajiyya():
     assert missed == []
 
 
-def test_real_context_grid_has_exactly_one_false_flag():
-    """جولة, which V4-27 called 'override-list entry number one'. Both readings
-    take a noun complement, so no structural test separates them. Recorded as a
-    false FLAG — the allowed direction — rather than listed, which would silence
-    «قام الوفد بجولة في المدينة»."""
+def test_real_context_grid_has_no_false_flags():
+    """The جولة false flag is gone: «بجولة مفاوضات» is a licensed pair."""
     false_flags = [r["الجملة"]
                    for r in csv.DictReader(io.open("doc/context_test.csv", encoding="utf-8-sig"))
                    if r.get("الجملة") and r["حكمك"].strip() == "فصيح"
                    and qam_flags(r["الجملة"])]
 
-    assert false_flags == ["قام الطرفان بجولة مفاوضات"]
+    assert false_flags == []
 
 
 """ the list is closed, and cannot silence a real flag """
 
 
-def test_the_result_noun_list_is_the_four_the_gold_data_requires():
-    assert sorted(RESULT_NOUNS) == sorted(["واجب", "دور", "عملية", "حملة"])
+def test_the_result_noun_list_matches_the_closed_categories():
+    """قاعدة §2.2 — five closed categories of nouns that take no derived verb
+    carrying the same meaning. Stored as lemmas: أمانة/عهدة/أعباء lemmatise to
+    أمان/عهد/عبء, so the surfaces would never match."""
+    assert set(RESULT_NOUNS) == {
+        "دور", "وظيفة", "مهمة", "رسالة", "مقام",
+        "واجب", "حق", "التزام", "مسؤولية", "أمان", "عهد",
+        "أمر", "شأن", "عبء",
+    }
+
+
+def test_section_2_2_outranks_section_1_3():
+    """A described مصدر with NO derived verb stays فصيح — «قام المدير
+    بمسؤولياته كاملة» has nothing to collapse to, so the الصفة is irrelevant.
+    Order matters: §1.3 assumes a collapse exists."""
+    assert qam_flags("قام المدير بمسؤولياته كاملة") is False
+    assert qam_flags("قام الوصي بأمر اليتيم") is False
 
 
 @pytest.mark.parametrize(
-    "sentence", ["قام الجيش بعملية إنقاذ", "قام الموظف بدوره في المشروع",
-                 "قامت الشرطة بحملة تفتيش", "قام القائد بواجب الدفاع عن المدينة"]
+    "sentence", ["قامت الحكومة بإصلاح شامل", "قام الطبيب بفحص دقيق",
+                 "قام الفريق بمحاولة أخيرة", "قام المركز بمسح ميداني"]
+)
+def test_real_a_described_masdar_flags(sentence):
+    """§1.3 (2026-08-28) — الصفة does not protect the sentence; it collapses to
+    a مفعول مطلق موصوف: «أصلحت الحكومة إصلاحًا شاملًا». Case 5 is withdrawn."""
+    assert qam_flags(sentence) is True
+
+
+@pytest.mark.parametrize(
+    "sentence", ["قام الموظف بدوره في المشروع", "قام القائد بواجب الدفاع عن المدينة",
+                 "قام المدير بمسؤولياته", "قام الوصي بأمر اليتيم"]
 )
 def test_real_each_listed_noun_earns_its_entry(sentence):
     assert qam_flags(sentence) is False
 
 
-""" the mistagged-adjective list, matched on surface """
+""" negation does NOT suppress — Case 2 was withdrawn 2026-08-28 """
 
 
 @pytest.mark.parametrize(
-    "sentence", ["قام الطبيب بزيارة منزلية", "قامت الشركة بخطوة جريئة",
-                 "قامت الحكومة بإجراء احترازي", "قامت الوزارة بخطوة استباقية"]
+    "sentence",
+    [
+        "لم يقم المسؤول بأي إجراء",
+        "لن تقوم بأي محاولة",
+        "ما قامت بأي مراجعة",
+        "لم تقم اللجنة بأية خطوة",
+        "لم يقم الباحث بدراسة الظاهرة",
+    ],
 )
-def test_real_mistagged_adjectives_reach_case_five(sentence):
+def test_real_negation_flags(sentence):
+    """Ghaida's ruling: «لم يقم بأي إجراء» → «لم يتخذ أي إجراء» holds, so the
+    periphrasis is redundant and this is عرنجي. القاعدة row 2 called it فصيح;
+    that row is withdrawn."""
+    assert qam_flags(sentence) is True
+
+
+def test_real_a_quantifier_does_not_hide_the_real_head():
+    """أي takes the بـ, so «لم يقم بأي عملية إنقاذ» has عملية — a listed result
+    noun — one token past the complement. Without complement_head_index this
+    would test أي against the list and wrongly flag."""
+    assert qam_flags("لم يقم بأي دور في المشروع") is False
+    assert qam_flags("لم يقم بأي واجب") is False
+
+
+""" the two-step decision order — قاعدة §3, 2026-08-28 """
+
+
+def test_the_verification_step_runs_after_the_collapse_step():
+    """ORDER IS LOAD-BEARING, and this asserts it rather than the outcome.
+
+    §3.1 collapse step: does the sentence take a direct verb / مفعول مطلق?
+    §3.2 verification: only if the collapse BREAKS — series, or a نهوض/تكفّل noun.
+
+    «قام المدير بمسؤولياته كاملة» is the case that separates the two orders. It
+    is a described مصدر, so §1.3 alone would flag it; but مسؤولية has no derived
+    verb, so the collapse never holds and the verification step silences it.
+    Run the steps the other way round and this becomes a missed... no — a WRONG
+    FLAG on فصيح Arabic.
+    """
+    assert qam_flags("قام المدير بمسؤولياته كاملة") is False
+    assert qam_flags("قام الطبيب بفحص دقيق") is True
+
+
+def test_a_series_is_checked_before_the_noun_list():
+    """Both are §3.2 verification checks, and a sentence can satisfy either.
+    «قام بالقراءة والتصحيح» is a series whose members are NOT listed nouns —
+    only the series check can silence it."""
+    assert qam_flags("قام بالقراءة والتصحيح") is False
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    ["قام بدوره", "قام بواجبه", "قام الوصي بأمر اليتيم", "قام الأب بشأن أسرته",
+     "قام الموظف بوظيفته", "قام المعلم برسالته"],
+)
+def test_real_the_verification_list_covers_qaida_categories(sentence):
+    """§2.2's five closed categories — الوظائف، التكاليف، النهوض، الأحداث
+    الكبرى، الفرق التشغيلية."""
     assert qam_flags(sentence) is False
 
 
-def test_real_the_lemma_behind_a_mistagged_adjective_is_untouched():
-    """منزلية lemmatises to منزل, the ordinary noun 'house'. Matching on lex
-    would silence this genuine flag; matching on surface does not."""
-    assert qam_flags("قام الوزير بزيارة منزل") is True
+""" pair-keyed licensing — جولة, قاعدة 2026-08-28 """
+
+LICENSED = reader(whitelist_path)["qam"]["licensed_pairs"]
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    ["قام الطرفان بجولة مفاوضات", "قام الوفدان بجولة محادثات",
+     "قامت اللجنة بجولة تفتيش", "قام الفريق بجولة استطلاع",
+     "قام الوفد بجولة حوار", "قام الوفد بجولة تراخيص"],
+)
+def test_real_a_licensed_pair_is_silent(sentence):
+    """جولة + a procedural stage is a *round* of something — قام بـ carries
+    that meaning and there is no single verb for it."""
+    assert qam_flags(sentence) is False
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    ["قام الوفد بجولة في المدينة", "قام الزائر بجولة في المتحف",
+     "قام الوفد بجولة تفقدية", "قامت اللجنة بجولة ميدانية",
+     "قام الفريق بجولة استكشافية", "قام بجولة واسعة"],
+)
+def test_real_an_unlicensed_جولة_flags(sentence):
+    """Place or adjective — «جال/تجوّل في المدينة»، «تفقّد». These need no
+    blacklist: they flag by default, which is why القاعدة's blacklist is
+    deliberately not encoded."""
+    assert qam_flags(sentence) is True
+
+
+def test_the_licensing_words_are_stored_as_lemmas():
+    """مفاوضات/محادثات/تراخيص lemmatise to the singular; surface entries would
+    silently never match."""
+    assert set(LICENSED["جولة"]) == {
+        "مفاوضة", "محادثة", "استطلاع", "ترخيص", "تفتيش", "حوار", "استكشاف"
+    }
+
+
+def test_only_one_word_needs_pair_keying():
+    """A probe, not a mechanism. If a second word needs this, build the general
+    (مصدر + complement head) table CLAUDE.md predicted; while جولة stands alone
+    it is a bounded exception."""
+    assert list(LICENSED) == ["جولة"]
+
+
+def test_the_rule_works_with_the_pair_list_empty():
+    from app.engine.rule import is_licensed_pair
+
+    assert is_licensed_pair([{"lex": "جولة"}, {"lex": "مفاوضة"}], 0, {}) is False
