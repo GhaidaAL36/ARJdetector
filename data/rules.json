@@ -12,5 +12,10 @@
     ],
     "complement_proclitic": "bi_prep",
     "complement_max_skip": 6
+  },
+  "qabl": {
+    "rule_id": "من قبل",
+    "trigger_prep_lex": "من",
+    "trigger_head_surface": "قبل"
   }
 }
