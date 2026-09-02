@@ -3,6 +3,7 @@ from app.engine.tags import (
     DESCRIPTOR_POS,
     NO_PROCLITIC,
     NOUN,
+    NON_GENITIVE_POS,
     NOUN_QUANT,
     PART_NEG,
     PREP,
@@ -59,9 +60,21 @@ def is_qabl_trigger(tokens, index, disambiguated, prep_lex, head_surface):
 def _is_qabl_head(word, head_surface, pronoun_suffixes=PRONOUN_SUFFIXES):
     if word == head_surface:
         return True
-    if not word.startswith(head_surface):
+    return _carries_pronoun(word, head_surface, pronoun_suffixes)
+
+
+def _carries_pronoun(word, head_surface, pronoun_suffixes=PRONOUN_SUFFIXES):
+    if word == head_surface or not word.startswith(head_surface):
         return False
     return word[len(head_surface):] in pronoun_suffixes
+
+
+def has_qabl_genitive(tokens, head_index, disambiguated, head_surface):
+    if _carries_pronoun(tokens[head_index][1], head_surface):
+        return True
+    if head_index + 1 >= len(tokens):
+        return False
+    return disambiguated[head_index + 1]["pos"] not in NON_GENITIVE_POS
 
 
 def is_result_noun(disambiguated, complement_index, result_nouns):
