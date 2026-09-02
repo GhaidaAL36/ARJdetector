@@ -40,7 +40,11 @@ ALLOWED_SPEC_KEYS = {
 
 #: The pronoun suffixes «من قبل» can carry. Named here only so the tests can
 #: assert they are ABSENT from data/ — the real paradigm lives in Python.
-PRONOUN_SUFFIXES = ["ه", "ها", "هم", "هن", "ك", "كم", "كن", "ي", "نا"]
+PRONOUN_SUFFIXES = [
+    "ه", "ها", "هما", "هم", "هن",
+    "ك", "كما", "كم", "كن",
+    "ي", "نا",
+]
 
 
 """ the shape """
