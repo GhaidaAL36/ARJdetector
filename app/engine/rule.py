@@ -209,3 +209,11 @@ def get_qam_suggestion():
 
 def get_qam_explanation():
     return "فعل مساعد زائد"
+
+
+def get_qabl_suggestion():
+    return "يمكن إسناد الفعل إلى فاعله مباشرة، أو حذف «من قبل»"
+
+
+def get_qabl_explanation():
+    return "فاعل مُقحَم على المبني للمجهول"

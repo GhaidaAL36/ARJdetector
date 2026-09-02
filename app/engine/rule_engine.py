@@ -19,6 +19,10 @@ from app.engine.rule import (
     is_whitelisted_lemma,
     is_force_excluded,
     is_tam_trigger,
+    is_qabl_trigger,
+    has_qabl_genitive,
+    get_qabl_explanation,
+    get_qabl_suggestion,
     is_in_waw_chain,
     is_force_intransitive_masdar,
 )
@@ -257,7 +261,60 @@ def find_qam_matches(rules, whitelist, tokens, disambiguated):
     return matches
 
 
+def find_qabl_matches(rules, whitelist, tokens, disambiguated):
+    spec = rules.get("qabl") or {}
+    prep_lex = spec.get("trigger_prep_lex")
+    head_surface = spec.get("trigger_head_surface")
+    if not prep_lex or not head_surface:
+        return []
+
+    rule_id = spec.get("rule_id", prep_lex + " " + head_surface)
+    matches = []
+
+    for index, word in tokens:
+        if not is_qabl_trigger(tokens, index, disambiguated, prep_lex, head_surface):
+            continue
+
+        if not has_qabl_genitive(tokens, index + 1, disambiguated, head_surface):
+            continue
+
+        head = tokens[index + 1][1]
+        if head == head_surface:
+            trigger, target = word + " " + head, tokens[index + 2][1]
+        else:
+            trigger, target = word, head
+
+        matches.append(
+            (
+                index,
+                build_match(
+                    trigger,
+                    target,
+                    rule_id,
+                    get_qabl_explanation(),
+                    get_qabl_suggestion(),
+                ),
+            )
+        )
+
+    return matches
+
+
 LEMMA_RULE_KEYS = ("tam_trigger_lex", "qam")
+
+
+def has_qabl_candidate(rules, tokens):
+    spec = rules.get("qabl") or {}
+    prep_lex = spec.get("trigger_prep_lex")
+    head_surface = spec.get("trigger_head_surface")
+    if not prep_lex or not head_surface:
+        return False
+
+    return any(
+        tokens[index][1].endswith(prep_lex)
+        and tokens[index + 1][1].startswith(head_surface)
+        for index in range(len(tokens) - 1)
+    )
 
 
 def analyze(path, whitelist_path, text):
@@ -270,7 +327,7 @@ def analyze(path, whitelist_path, text):
 
     has_trigger = any(word.endswith(rules["trigger_word"]) for _, word in tokens)
     has_lemma_rule = any(rules.get(key) for key in LEMMA_RULE_KEYS)
-    if not has_trigger and not has_lemma_rule:
+    if not has_trigger and not has_lemma_rule and not has_qabl_candidate(rules, tokens):
         return build_response([])
 
     disambiguated = get_pos_and_pattern_in_context(tokens)
@@ -278,6 +335,7 @@ def analyze(path, whitelist_path, text):
     found = find_bshakl_matches(rules, whitelist, tokens, disambiguated)
     found.extend(find_tam_matches(rules, whitelist, tokens, disambiguated))
     found.extend(find_qam_matches(rules, whitelist, tokens, disambiguated))
+    found.extend(find_qabl_matches(rules, whitelist, tokens, disambiguated))
     found.sort(key=lambda pair: pair[0])
 
     return build_response([match for _, match in found])
