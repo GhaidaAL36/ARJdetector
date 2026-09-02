@@ -5,6 +5,8 @@ from app.engine.tags import (
     NOUN,
     NOUN_QUANT,
     PART_NEG,
+    PREP,
+    PRONOUN_SUFFIXES,
     SENTENCE_END,
     VERB,
     WAW_PROCLITICS,
@@ -43,6 +45,23 @@ def _is_negated_qam_mistag(tokens, index, disambiguated, mistagged_surfaces):
     if index == 0:
         return False
     return disambiguated[index - 1]["pos"] == PART_NEG
+
+
+def is_qabl_trigger(tokens, index, disambiguated, prep_lex, head_surface):
+    if index + 1 >= len(tokens):
+        return False
+    info = disambiguated[index]
+    if info["lex"] != prep_lex or info["pos"] != PREP:
+        return False
+    return _is_qabl_head(tokens[index + 1][1], head_surface)
+
+
+def _is_qabl_head(word, head_surface, pronoun_suffixes=PRONOUN_SUFFIXES):
+    if word == head_surface:
+        return True
+    if not word.startswith(head_surface):
+        return False
+    return word[len(head_surface):] in pronoun_suffixes
 
 
 def is_result_noun(disambiguated, complement_index, result_nouns):
