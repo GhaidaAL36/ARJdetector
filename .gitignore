@@ -51,6 +51,7 @@ doc/result_nouns_review.csv
 doc/my_sentences.txt
 doc/v5_review_sample.csv
 doc/v5_clitics.csv
+doc/v5_heldout.csv
 ARJdetector_flow.md 
 
 # helper
