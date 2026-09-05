@@ -159,3 +159,51 @@ def test_every_clitic_row_labelled_عرنجي_flags():
     rows = [r for r in labelled(CLITICS) if gold_of(r) is True]
     assert len(rows) == 145
     assert all(flagged(r["sentence"]) for r in rows)
+
+
+""" V5T-17 — the held-out run, pinned
+
+NOTE: reads doc/v5_heldout.csv, gitignored. 50 sentences drawn at random from
+`ara_news_2020_1M` (seed 0) AFTER the mechanism was frozen, labelled by Ghaida
+without seeing the tool's verdict or the pos columns it decides on. Unlike every
+other set here, this one measures rather than regresses.
+"""
+
+HELDOUT_ROWS = labelled(HELDOUT)
+
+
+@goldsets.needs(HELDOUT)
+def test_the_held_out_run_scores_as_recorded():
+    """47/50, ZERO missed عرنجية, 3 false flags — the number V5T-17 produced on
+    its single run. It sits inside the development set's 61/64, which is the
+    evidence that the mechanism was not fitted to those 64 rows.
+
+    All three misses are the bare branch's known-mixed cases; the set drew no
+    clitics, so it says nothing about that branch (see `v5_clitics.csv`).
+    """
+    rows = labelled(HELDOUT)
+    assert len(rows) == 50
+
+    missed = [r for r in rows if gold_of(r) and not flagged(r["sentence"])]
+    false_flags = [r for r in rows if not gold_of(r) and flagged(r["sentence"])]
+
+    assert missed == [], [r["sentence"][:60] for r in missed]
+    assert len(false_flags) == 3, [r["sentence"][:60] for r in false_flags]
+    assert len(rows) - len(false_flags) == 47
+
+
+@goldsets.needs(HELDOUT)
+def test_the_held_out_set_is_all_bare():
+    """Pins the caveat rather than leaving it in prose: a random draw of 50 at
+    1.65% clitic frequency contains none, so this file measures one branch."""
+    assert not any(is_clitic_row(r) for r in labelled(HELDOUT))
+
+
+@goldsets.needs(HELDOUT)
+def test_every_held_out_عرنجي_row_is_caught():
+    """41/41 recall on sentences the mechanism has never seen. n=41 bounds the
+    miss rate below ~7% at 95%, which is what "zero missed" is worth here —
+    a real result, not proof the invariant can never break."""
+    rows = [r for r in labelled(HELDOUT) if gold_of(r) is True]
+    assert len(rows) == 41
+    assert all(flagged(r["sentence"]) for r in rows)

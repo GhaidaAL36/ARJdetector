@@ -303,3 +303,46 @@ def test_the_trigger_finds_every_row():
             is_qabl_trigger(tokens, i, disambiguated, PREP_LEX, HEAD)
             for i, _ in tokens
         ), row["sentence"]
+
+
+""" V5T-18 — the decision, and the counterfactual that settles it """
+
+
+@goldsets.needs(CLITIC_GOLD)
+def test_abstaining_on_clitics_would_break_the_invariant():
+    """V5T-18 asked: flag the pronoun cases, or abstain on them?
+
+    The task was blocked pending "the held-out numbers and the wider Case 3
+    sample". Both exist now, and they make the answer more decisive than the
+    10-row estimate it was parked on — the original framing was 3 false flags
+    against 7 missed; on 193 rows it is 48 against 145.
+
+    This test asserts the counterfactual rather than leaving it in prose, so
+    anyone proposing the switch has to delete a failing test that states its
+    cost. Abstaining is not a tuning choice; it converts every Case 1 clitic
+    into a silent miss, which is the one error this rule may not make.
+    """
+    rows = goldsets.rows(CLITIC_GOLD)
+    would_be_missed = [row for row in rows if _case(row)[0] is True]
+    would_be_saved = [row for row in rows if _case(row)[0] is False]
+
+    assert len(would_be_missed) == 145
+    assert len(would_be_saved) == 48
+    ratio = len(would_be_missed) / len(would_be_saved)
+    assert ratio > 3.0, f"three missed عرنجية bought per false flag saved: {ratio:.1f}"
+
+
+@goldsets.needs(CLITIC_GOLD)
+def test_the_clitic_branch_still_flags_unconditionally():
+    """The decision itself, pinned. A pronoun IS a مضاف إليه, so the branch has
+    nothing to decide — and V5T-18 confirms it should stay that way. If this
+    ever fails, someone has added a suppression path and owes the measurement.
+    """
+    for row in goldsets.rows(CLITIC_GOLD)[:40]:
+        tokens = preprocess(row["sentence"])
+        disambiguated = get_pos_and_pattern_in_context(tokens)
+        for index, _ in tokens:
+            if is_qabl_trigger(tokens, index, disambiguated, PREP_LEX, HEAD) and \
+                    _carries_pronoun(tokens[index + 1][1], HEAD):
+                assert has_qabl_genitive(tokens, index + 1, disambiguated, HEAD) is True
+                break
