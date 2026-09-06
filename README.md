@@ -12,6 +12,11 @@ instead.
 | `بشكل` + descriptor | بشكل رسمي | رسميًا |
 | `تمّ` + مصدر | تم إغلاق الباب | أُغلق البابُ |
 | `قام بـ` + مصدر | قام الباحث بدراسة الظاهرة | درس الباحثُ الظاهرةَ |
+| `من قبل` + مضاف إليه | تمت مراجعة الملف من قبل المشرف | راجع المشرفُ الملفَّ |
+
+The rules and the reasoning behind them are written out in
+[`doc/Arabic_rules.md`](doc/Arabic_rules.md), including what each one
+deliberately does **not** catch.
 
 ## How it decides
 
@@ -28,7 +33,6 @@ The rules are conservative in one direction on purpose: the tool would rather
 flag something you disagree with than stay silent about real عرنجية. A false
 flag is visible and you can argue with it; a missed one is invisible and you
 never learn the tool had something to say.
-
 
 ## Requirements
 
@@ -91,22 +95,6 @@ Clean text returns the same keys with an empty list. `rule` names which rule
 produced each match, and matches come back in reading order, so a sentence
 containing more than one is reported in the order the phrases appear.
 
-Diacritics are optional — the analyser supplies its own, so «تَمَّ إغلاقُ البابِ»
-and «تم إغلاق الباب» give the same result.
-
-## Trying your own sentences
-
-To check a batch without starting the server:
-
-```bash
-python scripts/try_sentences.py doc/my_sentences.txt
-```
-
-One sentence per line; blank lines and `#` comments are skipped. Give it a CSV
-with `sentence` and `expected` columns and it scores the run, reporting missed
-عرنجية and false flags separately. `--out results.csv` saves the results,
-`--url` sends them to a running server instead.
-
 ## Project structure
 
 ```text
@@ -126,13 +114,8 @@ app/
 data/
 ├── rules.json            # trigger configuration
 └── whitelist.json        # the stored lists
-doc/                      # labelled sentence sets, used by the tests
-scripts/                  # helper tools, never imported by the app
+doc/                      # the Arabic rule documents
 ```
-
-Dependencies run one way with no cycles, and each external dependency has
-exactly one home — CAMeL Tools in `analysis.py`, Arramooz in `dictionary.py` —
-so both are single mocking boundaries in the tests.
 
 ## Configuration
 
@@ -148,6 +131,5 @@ pytest
 ```
 
 Pure unit tests, tests mocked at the CAMeL and Arramooz boundaries, and
-integration tests against the real analyser and dictionary. Some read the
-labelled sentence sets in `doc/`, so those files are part of the suite rather
-than documentation.
+integration tests against the real analyser and dictionary — the last of these
+run the actual models, so the suite takes about a minute.
