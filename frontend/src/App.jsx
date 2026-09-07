@@ -1,10 +1,14 @@
-import AboutSidebar from "./components/AboutSidebar"
+import { useState } from "react";
+import AboutSidebar from "./components/AboutSidebar";
+import TextSection from "./components/TextSection";
 
 export default function App() {
+  const [text, setText] = useState("");
+
   return (
-    <div className="flex min-h-screen">
-      <div className="flex-1" />
+    <div className="flex h-screen">
+      <TextSection value={text} onChange={setText} />
       <AboutSidebar />
     </div>
-  )
+  );
 }
