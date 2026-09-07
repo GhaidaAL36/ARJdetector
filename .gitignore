@@ -21,6 +21,10 @@ htmlcov/
 # Environment variables
 .env
 
+# Node / frontend
+node_modules/
+frontend/dist/
+
 # IDE
 .vscode/
 .idea/
@@ -34,25 +38,20 @@ htmlcov/
 # Logs
 *.log
 
-# personal test sentences
-doc/context_test.csv
-doc/heldout_eval.csv 
-doc/labelled_set.csv 
-doc/result_nouns_review.csv
-
 #claude
-CLAUDE.md 
+CLAUDE.md
+
 # personal test sentences — labelled sets used by the local test suite.
 # Tests that read these skip cleanly when the files are absent.
-doc/context_test.csv
-doc/heldout_eval.csv
-doc/labelled_set.csv
-doc/result_nouns_review.csv
-doc/my_sentences.txt
-doc/v5_review_sample.csv
-doc/v5_clitics.csv
-doc/v5_heldout.csv
-ARJdetector_flow.md 
+backend/doc/context_test.csv
+backend/doc/heldout_eval.csv
+backend/doc/labelled_set.csv
+backend/doc/result_nouns_review.csv
+backend/doc/my_sentences.txt
+backend/doc/v5_review_sample.csv
+backend/doc/v5_clitics.csv
+backend/doc/v5_heldout.csv
+backend/doc/ARJdetector_flow.md
 
 # helper
-scripts
+backend/scripts

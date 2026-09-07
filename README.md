@@ -15,7 +15,7 @@ instead.
 | `من قبل` + مضاف إليه | تمت مراجعة الملف من قبل المشرف | راجع المشرفُ الملفَّ |
 
 The rules and the reasoning behind them are written out in
-[`doc/Arabic_rules.md`](doc/Arabic_rules.md), including what each one
+[`backend/doc/Arabic_rules.md`](backend/doc/Arabic_rules.md), including what each one
 deliberately does **not** catch.
 
 ## How it decides
@@ -51,7 +51,7 @@ Activate it — `source .venv/bin/activate` on Linux/macOS/WSL, or
 `.venv\Scripts\Activate.ps1` on Windows PowerShell — then:
 
 ```bash
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 camel_data -i morphology-db-msa-r13
 camel_data -i disambig-mle-calima-msa-r13
 ```
@@ -61,11 +61,27 @@ it needs no extra download.
 
 ## Running
 
+The backend resolves `data/` relative to the working directory, so run it from
+`backend/`:
+
 ```bash
+cd backend
 python run.py          # or: uvicorn app.main:app --reload
 ```
 
 Available at `http://127.0.0.1:8000`, with API docs at `/docs` and `/redoc`.
+The test suite runs from the same directory (`cd backend && pytest`).
+
+The frontend is a separate Vite app:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+It serves on `http://localhost:5173` and proxies `/analyze` to the backend, so
+both need to be running, and no CORS configuration is required in development.
 
 ## Usage
 
@@ -98,23 +114,28 @@ containing more than one is reported in the order the phrases appear.
 ## Project structure
 
 ```text
-app/
-├── engine/
-│   ├── tags.py           # the analyser's vocabulary — pure data
-│   ├── analysis.py       # CAMeL Tools access
-│   ├── morphology.py     # measures, roots, verb shapes
-│   ├── dictionary.py     # Arramooz access
-│   ├── derivation.py     # مصدر → base verb, with a confidence policy
-│   ├── rule.py           # the rule predicates
-│   ├── match.py          # response shape
-│   └── rule_engine.py    # analyze() — runs the rules and merges matches
-├── text/                 # tokenisation and lookup-key normalisation
-├── rules/                # JSON reader
-├── config.py  main.py  schemas.py
-data/
-├── rules.json            # trigger configuration
-└── whitelist.json        # the stored lists
-doc/                      # the Arabic rule documents
+backend/
+├── app/
+│   ├── engine/
+│   │   ├── tags.py           # the analyser's vocabulary — pure data
+│   │   ├── analysis.py       # CAMeL Tools access
+│   │   ├── morphology.py     # measures, roots, verb shapes
+│   │   ├── dictionary.py     # Arramooz access
+│   │   ├── derivation.py     # مصدر → base verb, with a confidence policy
+│   │   ├── rule.py           # the rule predicates
+│   │   ├── match.py          # response shape
+│   │   └── rule_engine.py    # analyze() — runs the rules and merges matches
+│   ├── text/                 # tokenisation and lookup-key normalisation
+│   ├── rules/                # JSON reader
+│   ├── config.py  main.py  schemas.py
+├── data/
+│   ├── rules.json            # trigger configuration
+│   └── whitelist.json        # the stored lists
+├── doc/                      # the Arabic rule documents
+├── tests/
+├── requirements.txt
+└── run.py
+frontend/                     # Vite + React + Tailwind client
 ```
 
 ## Configuration
