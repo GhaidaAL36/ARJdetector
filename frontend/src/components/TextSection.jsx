@@ -25,7 +25,7 @@ export default function TextSection({
   const empty = words === 0;
 
   return (
-    <section className="flex flex-1 flex-col px-8 py-7">
+    <section className="flex flex-1 flex-col bg-canvas px-8 py-7">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-baseline gap-3">
           <h1 className="text-base font-bold">النص</h1>
@@ -39,7 +39,7 @@ export default function TextSection({
             type="button"
             onClick={() => onChange("")}
             disabled={empty}
-            className="rounded-lg border border-line bg-surface px-4 py-1.5 text-sm text-ink transition-colors hover:border-ink/30 hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+            className="rounded-lg border border-line bg-canvas px-4 py-1.5 text-sm text-ink transition-colors hover:border-ink/30 hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
             مسح
           </button>
