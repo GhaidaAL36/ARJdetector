@@ -1,5 +1,5 @@
 from app.rules.rule_loader import reader
-from app.text.preprocessor import preprocess
+from app.text.preprocessor import align_tokens, preprocess
 from app.engine.analysis import get_pos_and_pattern_in_context
 from app.engine.tags import BI_PREP, NOUN, SENTENCE_END, VERB
 from app.engine.rule import (
@@ -28,7 +28,7 @@ from app.engine.rule import (
 )
 from app.engine.derivation import derive_base_verb, is_trusted_derivation
 from app.engine.dictionary import is_masdar, is_transitive_verb
-from app.engine.match import build_match, build_response
+from app.engine.match import build_match, build_response, spans_for
 
 MAX_SKIP_TOKENS = 3
 QAM_MAX_SKIP_TOKENS = 6
@@ -81,7 +81,7 @@ def qam_complement_index(
     return None
 
 
-def find_bshakl_matches(rules, whitelist, tokens, disambiguated):
+def find_bshakl_matches(rules, whitelist, tokens, disambiguated, token_spans=None):
     trigger_word = rules["trigger_word"]
     rule_id = rules.get("bshakl_rule_id", trigger_word)
     matches = []
@@ -120,6 +120,7 @@ def find_bshakl_matches(rules, whitelist, tokens, disambiguated):
                         rule_id,
                         get_explanation(),
                         get_suggestion(),
+                        spans_for(token_spans, [index, target_idx]),
                     ),
                 )
             )
@@ -154,7 +155,7 @@ def masdar_target_index(tokens, index, disambiguated):
     return fallback
 
 
-def find_tam_matches(rules, whitelist, tokens, disambiguated):
+def find_tam_matches(rules, whitelist, tokens, disambiguated, token_spans=None):
     trigger_lex = rules.get("tam_trigger_lex")
     if not trigger_lex:
         return []
@@ -195,7 +196,12 @@ def find_tam_matches(rules, whitelist, tokens, disambiguated):
                 (
                     index,
                     build_match(
-                        word, target, rule_id, get_tam_explanation(), get_tam_suggestion()
+                        word,
+                        target,
+                        rule_id,
+                        get_tam_explanation(),
+                        get_tam_suggestion(),
+                        spans_for(token_spans, [index, target_idx]),
                     ),
                 )
             )
@@ -203,7 +209,7 @@ def find_tam_matches(rules, whitelist, tokens, disambiguated):
     return matches
 
 
-def find_qam_matches(rules, whitelist, tokens, disambiguated):
+def find_qam_matches(rules, whitelist, tokens, disambiguated, token_spans=None):
     spec = rules.get("qam") or {}
     trigger_lexes = spec.get("trigger_lex")
     if not trigger_lexes:
@@ -254,6 +260,7 @@ def find_qam_matches(rules, whitelist, tokens, disambiguated):
                     rule_id,
                     get_qam_explanation(),
                     get_qam_suggestion(),
+                    spans_for(token_spans, [index, complement]),
                 ),
             )
         )
@@ -261,7 +268,7 @@ def find_qam_matches(rules, whitelist, tokens, disambiguated):
     return matches
 
 
-def find_qabl_matches(rules, whitelist, tokens, disambiguated):
+def find_qabl_matches(rules, whitelist, tokens, disambiguated, token_spans=None):
     spec = rules.get("qabl") or {}
     prep_lex = spec.get("trigger_prep_lex")
     head_surface = spec.get("trigger_head_surface")
@@ -281,8 +288,10 @@ def find_qabl_matches(rules, whitelist, tokens, disambiguated):
         head = tokens[index + 1][1]
         if head == head_surface:
             trigger, target = word + " " + head, tokens[index + 2][1]
+            covered = [index, index + 1, index + 2]
         else:
             trigger, target = word, head
+            covered = [index, index + 1]
 
         matches.append(
             (
@@ -293,6 +302,7 @@ def find_qabl_matches(rules, whitelist, tokens, disambiguated):
                     rule_id,
                     get_qabl_explanation(),
                     get_qabl_suggestion(),
+                    spans_for(token_spans, covered),
                 ),
             )
         )
@@ -331,11 +341,12 @@ def analyze(path, whitelist_path, text):
         return build_response([])
 
     disambiguated = get_pos_and_pattern_in_context(tokens)
+    token_spans = align_tokens(text, tokens)
 
-    found = find_bshakl_matches(rules, whitelist, tokens, disambiguated)
-    found.extend(find_tam_matches(rules, whitelist, tokens, disambiguated))
-    found.extend(find_qam_matches(rules, whitelist, tokens, disambiguated))
-    found.extend(find_qabl_matches(rules, whitelist, tokens, disambiguated))
+    found = find_bshakl_matches(rules, whitelist, tokens, disambiguated, token_spans)
+    found.extend(find_tam_matches(rules, whitelist, tokens, disambiguated, token_spans))
+    found.extend(find_qam_matches(rules, whitelist, tokens, disambiguated, token_spans))
+    found.extend(find_qabl_matches(rules, whitelist, tokens, disambiguated, token_spans))
     found.sort(key=lambda pair: pair[0])
 
     return build_response([match for _, match in found])
