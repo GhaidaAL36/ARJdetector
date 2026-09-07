@@ -101,7 +101,8 @@ The response always has the same shape, so a client never branches on the type:
       "rule": "قام بـ",
       "flagged_phrase": "قام بدراسة",
       "explanation": "فعل مساعد زائد",
-      "suggestion": "يمكن استبدال «قام بـ» بالفعل المباشر"
+      "suggestion": "يمكن استبدال «قام بـ» بالفعل المباشر",
+      "spans": [{ "start": 0, "end": 3 }, { "start": 11, "end": 17 }]
     }
   ]
 }
@@ -110,6 +111,13 @@ The response always has the same shape, so a client never branches on the type:
 Clean text returns the same keys with an empty list. `rule` names which rule
 produced each match, and matches come back in reading order, so a sentence
 containing more than one is reported in the order the phrases appear.
+
+`spans` gives character offsets into **the text as it was sent**, diacritics
+included, so a client can highlight the phrase in place without searching for
+it. A match carries **more than one span when its parts are not adjacent** —
+«قام الباحث بدراسة» flags `قام` and `بدراسة` as two spans, leaving the agent
+between them unhighlighted. Parts that do sit next to each other are merged
+into a single span, so «تم إطلاق» highlights as one run rather than two.
 
 ## Project structure
 
