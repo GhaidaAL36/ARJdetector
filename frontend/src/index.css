@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+
+@theme {
+  --color-canvas: #f7f4ef;
+  --color-surface: #ffffff;
+  --color-sidebar: #f2eee7;
+  --color-line: #e3ddd3;
+  --color-ink: #1c1917;
+  --color-muted: #78716c;
+  --color-flag: #c0392b;
+  --color-flag-soft: #f7dcd7;
+
+  --font-sans: "IBM Plex Sans Arabic", system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
