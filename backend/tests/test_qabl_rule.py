@@ -63,7 +63,13 @@ def test_the_match_carries_an_explanation_and_a_suggestion():
              if m["rule"] == QABL_RULE_ID][0]
     assert match["explanation"]
     assert match["suggestion"]
-    assert set(match) == {"rule", "flagged_phrase", "explanation", "suggestion"}
+    assert set(match) == {
+        "rule",
+        "flagged_phrase",
+        "explanation",
+        "suggestion",
+        "spans",
+    }
 
 
 def test_the_flagged_phrase_spans_the_whole_construction():

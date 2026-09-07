@@ -85,7 +85,9 @@ def test_analyze_merges_three_rules_in_reading_order():
     ), patch(
         "app.engine.rule_engine.find_qam_matches", return_value=[(0, "QAM")]
     ):
-        result = analyze(rules_path, whitelist_path, "…")
+        # the text has to be the one the mocked tokens came from: analyze reads
+        # it directly to place each match's spans.
+        result = analyze(rules_path, whitelist_path, "قام بدراسة تم إغلاق بشكل رائع")
 
     assert result == {"flagged": True, "matches": ["QAM", "TAM", "BSHAKL"]}
 

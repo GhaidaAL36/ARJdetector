@@ -7,12 +7,16 @@ from app.engine.rule import (
 )
 
 
-def bshakl(word, target, rule_id="بشكل"):
-    return build_match(word, target, rule_id, get_explanation(), get_suggestion())
+def bshakl(word, target, rule_id="بشكل", spans=None):
+    return build_match(
+        word, target, rule_id, get_explanation(), get_suggestion(), spans or []
+    )
 
 
-def tam(word, target, rule_id="تم"):
-    return build_match(word, target, rule_id, get_tam_explanation(), get_tam_suggestion())
+def tam(word, target, rule_id="تم", spans=None):
+    return build_match(
+        word, target, rule_id, get_tam_explanation(), get_tam_suggestion(), spans or []
+    )
 
 
 def test_build_match_returns_correct_shape():

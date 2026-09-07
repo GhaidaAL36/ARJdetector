@@ -83,7 +83,13 @@ def test_each_rule_names_itself_when_it_fires(rule):
 def test_every_match_carries_the_field_and_nothing_extra():
     text = "تمت مراجعة الملف بشكل كامل من قبل المشرف"
     for match in analyze(rules_path, whitelist_path, text)["matches"]:
-        assert set(match) == {"rule", "flagged_phrase", "explanation", "suggestion"}
+        assert set(match) == {
+            "rule",
+            "flagged_phrase",
+            "explanation",
+            "suggestion",
+            "spans",
+        }
         assert match["rule"]
 
 
