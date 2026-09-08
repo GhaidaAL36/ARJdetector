@@ -18,7 +18,7 @@ function SuggestionCard({ index, phrase, suggestion }) {
   );
 }
 
-export default function SuggestionsPanel({ matches = [] }) {
+export default function SuggestionsPanel({ matches = [], analyzed = false }) {
   return (
     <aside className="flex w-80 shrink-0 flex-col border-e border-line bg-sidebar px-6 py-7">
       <div className="mb-5 flex items-center gap-2">
@@ -32,7 +32,9 @@ export default function SuggestionsPanel({ matches = [] }) {
 
       {matches.length === 0 ? (
         <p className="text-xs leading-6 text-muted">
-          لا توجد ملاحظات بعد. اكتب نصًّا ثم اضغط «تحليل».
+          {analyzed
+            ? "لم يُعثر على ملاحظات أسلوبية في هذا النص."
+            : "لا توجد ملاحظات بعد. اكتب نصًّا ثم اضغط «تحليل»."}
         </p>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
