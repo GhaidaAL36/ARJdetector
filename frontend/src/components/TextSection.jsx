@@ -1,9 +1,5 @@
 import { useEffect, useRef } from "react";
 
-function arabicNumber(value) {
-  return value.toLocaleString("ar-EG", { useGrouping: false });
-}
-
 function countWords(text) {
   const trimmed = text.trim();
   return trimmed === "" ? 0 : trimmed.split(/\s+/).length;
@@ -12,8 +8,8 @@ function countWords(text) {
 function notesLabel(count) {
   if (count === 1) return "ملاحظة أسلوبية واحدة";
   if (count === 2) return "ملاحظتان أسلوبيتان";
-  if (count <= 10) return `${arabicNumber(count)} ملاحظات أسلوبية`;
-  return `${arabicNumber(count)} ملاحظة أسلوبية`;
+  if (count <= 10) return `${count} ملاحظات أسلوبية`;
+  return `${count} ملاحظة أسلوبية`;
 }
 
 function buildSegments(text, matches) {
@@ -56,15 +52,19 @@ export default function TextSection({
   const textarea = useRef(null);
 
   useEffect(() => {
-    if (editing) textarea.current?.focus();
+    if (!editing) return;
+    const node = textarea.current;
+    if (!node) return;
+    node.focus();
+    node.setSelectionRange(node.value.length, node.value.length);
   }, [editing]);
 
   return (
     <section className="flex flex-1 flex-col bg-canvas px-8 py-7">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-baseline gap-3">
-          <h1 className="text-base font-bold">النص</h1>
-          <span className="text-xs text-muted">{arabicNumber(words)} كلمة</span>
+          <h1 className="text-base font-bold">نص تجريبي</h1>
+          <span className="text-xs text-muted">{words} كلمة</span>
         </div>
 
         <div className="flex gap-2">
@@ -101,6 +101,9 @@ export default function TextSection({
                 className="rounded bg-flag-soft px-0.5 text-ink"
               >
                 {segment.text}
+                <sup className="ms-0.5 select-none text-[10px] font-bold text-flag">
+                  {segment.match + 1}
+                </sup>
               </mark>
             ),
           )}
@@ -110,10 +113,10 @@ export default function TextSection({
           ref={textarea}
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          placeholder="الصق النص العربي هنا…"
+          placeholder="أكتب او ألصق النص هنا…"
           spellCheck="false"
           aria-label="النص المراد تحليله"
-          className={`${BOX} resize-none placeholder:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink`}
+          className={`${BOX} resize-none placeholder:text-muted focus:outline-none`}
         />
       )}
 
@@ -125,7 +128,7 @@ export default function TextSection({
             <>
               <span className="h-1.5 w-1.5 rounded-full bg-flag" />
               <span className="text-muted">
-                {notesLabel(matches.length)} في {arabicNumber(words)} كلمة
+                {notesLabel(matches.length)} في {words} كلمة
               </span>
             </>
           )

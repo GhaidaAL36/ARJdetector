@@ -11,6 +11,7 @@ export default function App() {
   const [editing, setEditing] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(true);
 
   function handleChange(next) {
     setText(next);
@@ -23,6 +24,7 @@ export default function App() {
     setAnalyzed(false);
     setEditing(true);
     setError("");
+    setShowSuggestions(true);
   }
 
   async function handleAnalyze() {
@@ -42,7 +44,13 @@ export default function App() {
 
   return (
     <div className="flex h-screen">
-      <SuggestionsPanel matches={matches} analyzed={analyzed} />
+      {analyzed && (
+        <SuggestionsPanel
+          matches={matches}
+          collapsed={!showSuggestions}
+          onToggle={() => setShowSuggestions((shown) => !shown)}
+        />
+      )}
       <TextSection
         value={text}
         onChange={handleChange}
