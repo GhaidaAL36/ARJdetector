@@ -1,5 +1,10 @@
 import { useState } from "react";
-import AboutSidebar from "./components/AboutSidebar";
+import AboutSidebar, {
+  AboutText,
+  Brand,
+  ContactRow,
+  MetaRow,
+} from "./components/AboutSidebar";
 import SuggestionsPanel from "./components/SuggestionsPanel";
 import TextSection from "./components/TextSection";
 import { analyzeText } from "./api";
@@ -43,14 +48,20 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex min-h-screen flex-col lg:h-screen lg:flex-row">
+      <header className="order-1 flex justify-center px-6 pt-7 lg:hidden">
+        <Brand />
+      </header>
+
       {analyzed && (
         <SuggestionsPanel
           matches={matches}
           collapsed={!showSuggestions}
           onToggle={() => setShowSuggestions((shown) => !shown)}
+          className="order-3 lg:order-none"
         />
       )}
+
       <TextSection
         value={text}
         onChange={handleChange}
@@ -61,8 +72,16 @@ export default function App() {
         editing={editing}
         analyzing={analyzing}
         error={error}
+        className="order-2 lg:order-none"
       />
+
       <AboutSidebar />
+
+      <div className="order-4 flex flex-col gap-6 px-6 pb-8 lg:hidden">
+        <AboutText />
+        <ContactRow />
+        <MetaRow />
+      </div>
     </div>
   );
 }
