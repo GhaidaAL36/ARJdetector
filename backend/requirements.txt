@@ -1,3 +1,6 @@
+# Full local environment, including the offline v4 experiment packages (torch,
+# transformers, camel-kenlm). Deploys do NOT use this file: Vercel installs from
+# pyproject.toml + uv.lock, which exclude every package the app never imports.
 annotated-doc==0.0.4
 annotated-types==0.7.0
 anyio==4.14.2

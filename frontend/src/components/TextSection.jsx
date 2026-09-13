@@ -1,4 +1,17 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+
+function SlowHint() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setVisible(true), 2500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return visible ? (
+    <span className="text-muted">قد يستغرق التحليل الأول بضع ثوانٍ…</span>
+  ) : null;
+}
 
 function countWords(text) {
   const trimmed = text.trim();
@@ -141,6 +154,8 @@ export default function TextSection({
       <div className="mt-3 flex items-center gap-2 text-xs lg:h-5">
         {error ? (
           <span className="text-flag">{error}</span>
+        ) : analyzing ? (
+          <SlowHint />
         ) : (
           highlighted && (
             <>

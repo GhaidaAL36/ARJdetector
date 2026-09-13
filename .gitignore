@@ -25,6 +25,10 @@ htmlcov/
 node_modules/
 frontend/dist/
 
+# Deployment
+.vercel/
+backend/camel_data/
+
 # IDE
 .vscode/
 .idea/

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "frontend": {
+      "root": "frontend/"
+    },
+    "backend": {
+      "root": "backend/",
+      "entrypoint": "app.main:app",
+      "buildCommand": "python3 fetch_camel_data.py",
+      "functions": {
+        "app/main.py": {
+          "excludeFiles": "{tests/**,doc/**}"
+        }
+      }
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/analyze",
+      "destination": {
+        "service": "backend"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "frontend"
+      }
+    }
+  ]
+}

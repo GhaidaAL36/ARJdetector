@@ -1,0 +1,22 @@
+[project]
+name = "ijaz-backend"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi==0.139.2",
+    "camel_tools==1.6.0",
+    "arramooz-pysqlite==0.4.2",
+]
+
+[tool.uv]
+# camel_tools declares these, but the analyzer and MLE disambiguator never
+# import them; excluding them is what keeps the Vercel bundle under its limit
+override-dependencies = [
+    "torch; sys_platform == 'never'",
+    "transformers; sys_platform == 'never'",
+    "camel-kenlm; sys_platform == 'never'",
+    "numpy; sys_platform == 'never'",
+    "pandas; sys_platform == 'never'",
+    "scipy; sys_platform == 'never'",
+    "scikit-learn; sys_platform == 'never'",
+]

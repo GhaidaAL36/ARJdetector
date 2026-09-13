@@ -61,8 +61,8 @@ it needs no extra download.
 
 ## Running
 
-The backend resolves `data/` relative to the working directory, so run it from
-`backend/`:
+Run the backend from `backend/`, since the code is imported as the `app`
+package:
 
 ```bash
 cd backend
@@ -82,6 +82,31 @@ npm run dev
 
 It serves on `http://localhost:5173` and proxies `/analyze` to the backend, so
 both need to be running, and no CORS configuration is required in development.
+
+## Deployment
+
+The app deploys to Vercel as one project with two
+[Services](https://vercel.com/docs/services), configured in `vercel.json`: the
+frontend serves every path, and `/analyze` is routed to the backend. Both share
+one domain, so the frontend's `fetch("/analyze")` works unchanged.
+
+To deploy, import the repository into Vercel and leave the root directory as
+the repository root. Nothing else needs configuring, but it is worth setting
+the environment variable `VERCEL_SUPPORT_LARGE_FUNCTIONS=1` in the project
+settings: new projects get it by default, and the backend needs it.
+
+What the deploy does differently from local development:
+
+- **Dependencies come from `backend/pyproject.toml` and `backend/uv.lock`**, not
+  `requirements.txt`. `camel_tools` declares torch, transformers, numpy, pandas,
+  scipy, scikit-learn and camel-kenlm, but this app imports none of them, so
+  `pyproject.toml` excludes them. That takes the install from 5.2 GB to 48 MB.
+  Keep `uv.lock` committed — it is what Vercel installs from.
+- **The CAMeL data is downloaded during the build** by
+  `backend/fetch_camel_data.py`: only the two MSA packages the app uses
+  (124 MB), each file checked against CAMeL's published checksum.
+- **The first request after the backend has been idle takes several seconds**,
+  while the language models load. Requests after that take milliseconds.
 
 ## Usage
 
@@ -141,9 +166,12 @@ backend/
 │   └── whitelist.json        # the stored lists
 ├── doc/                      # the Arabic rule documents
 ├── tests/
-├── requirements.txt
+├── fetch_camel_data.py       # build step: downloads and verifies the CAMeL data
+├── pyproject.toml  uv.lock   # deploy dependencies
+├── requirements.txt          # full local environment
 └── run.py
 frontend/                     # Vite + React + Tailwind client
+vercel.json                   # the two services and their routing
 ```
 
 ## Configuration
