@@ -61,6 +61,11 @@ RULE_OUTPUT = {
             "تحظى بتقدير واحترام من قبلنا",
         ],
     ),
+    RULES["akthar"]["rule_id"]: (
+        rule_module.get_akthar_suggestion,
+        rule_module.get_akthar_explanation,
+        ["هذا هو الحل الأكثر فاعلية", "هو الأكثر رحمة بالناس"],
+    ),
 }
 
 
@@ -108,7 +113,7 @@ def test_each_rule_says_something_of_its_own(rule_id):
 
 
 def test_no_two_rules_share_a_message():
-    """Four rules, four diagnoses. A shared string would make `rule` the only
+    """Five rules, five diagnoses. A shared string would make `rule` the only
     thing distinguishing them, which defeats the point of saying anything."""
     texts = [(s(), e()) for s, e, _ in RULE_OUTPUT.values()]
     assert len(set(texts)) == len(RULE_OUTPUT)

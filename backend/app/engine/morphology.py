@@ -81,6 +81,25 @@ def classify_measure(raw_pattern):
     return "I"
 
 
+def has_afal_form(raw_pattern, lex="", forced_lemmas=()):
+    """Can أفعل التفضيل be built from this word?
+
+    `raw_pattern` must be the STILL-DIACRITIZED pattern. `classify_measure`
+    reads kasra, sukun and shadda, and its fallback is "I" — so a
+    dediacritized pattern answers yes to everything.
+
+    `forced_lemmas` carries the measured exceptions: a form IV مصدر whose أفعل
+    is attested anyway (أهمية -> أهمّ). Capped, and it only ever ADDS a flag.
+    """
+    if lex and lex in forced_lemmas:
+        return True
+    if not raw_pattern:
+        #: no pattern is not evidence of measure I — `classify_measure` falls
+        #: through to "I" on anything it does not recognise, including "".
+        return False
+    return classify_measure(raw_pattern) == "I"
+
+
 def same_radical(letter, root_letter):
     return _normalize_hamza(letter) == _normalize_hamza(root_letter)
 

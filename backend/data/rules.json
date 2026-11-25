@@ -17,5 +17,14 @@
     "rule_id": "من قبل",
     "trigger_prep_lex": "من",
     "trigger_head_surface": "قبل"
+  },
+  "akthar": {
+    "rule_id": "الأكثر",
+    "trigger_lex": [
+      "أكثر",
+      "أقل"
+    ],
+    "trigger_proclitic": "Al_det",
+    "blocking_prev_lex": "على"
   }
 }

@@ -1,9 +1,16 @@
+import re
+
 from app.rules.rule_loader import reader
 from app.text.preprocessor import align_tokens, preprocess
 from app.engine.analysis import get_pos_and_pattern_in_context
 from app.engine.tags import BI_PREP, NOUN, SENTENCE_END, VERB
 from app.engine.rule import (
     complement_head_index,
+    is_akthar_trigger,
+    is_akthar_blocked,
+    is_described_target,
+    get_akthar_explanation,
+    get_akthar_suggestion,
     is_qam_trigger,
     is_duty_noun,
     is_licensed_pair,
@@ -27,6 +34,7 @@ from app.engine.rule import (
     is_force_intransitive_masdar,
 )
 from app.engine.derivation import derive_base_verb, is_trusted_derivation
+from app.engine.morphology import has_afal_form
 from app.engine.dictionary import is_masdar, is_transitive_verb
 from app.engine.match import build_match, build_response, spans_for
 
@@ -312,6 +320,70 @@ def find_qabl_matches(rules, whitelist, tokens, disambiguated, token_spans=None)
 
 LEMMA_RULE_KEYS = ("tam_trigger_lex", "qam")
 
+#: Deliberately WIDER than `is_akthar_trigger`: it keeps the ال/لل spellings
+#: and the و ف ب ل ك prefixes but does not anchor the end, so «الأكثرية» also
+#: reaches the lemma test instead of being dropped before the model runs. A
+#: cheap pre-check that is narrower than the thing it gates fails invisibly.
+AKTHAR_SURFACE = re.compile(r"^[وف]?(?:[بلك]?ال|لل)[اأ](?:كثر|قل)")
+
+
+def has_akthar_candidate(rules, tokens):
+    spec = rules.get("akthar") or {}
+    if not spec.get("trigger_lex"):
+        return False
+    return any(AKTHAR_SURFACE.match(word) for _, word in tokens)
+
+
+def find_akthar_matches(rules, whitelist, tokens, disambiguated, token_spans=None):
+    spec = rules.get("akthar") or {}
+    trigger_lexes = spec.get("trigger_lex")
+    proclitic = spec.get("trigger_proclitic")
+    if not trigger_lexes or not proclitic:
+        return []
+
+    rule_id = spec.get("rule_id", trigger_lexes[0])
+    blocking_lex = spec.get("blocking_prev_lex")
+    overrides = whitelist.get("akthar") or {}
+    forced_lemmas = overrides.get("forced_afal_lemmas", [])
+    matches = []
+
+    for index, word in tokens:
+        if not is_akthar_trigger(disambiguated[index], trigger_lexes, proclitic):
+            continue
+
+        # «على الأقل» is the fixed adverbial *at least*, not this construction
+        if blocking_lex and is_akthar_blocked(disambiguated, index, blocking_lex):
+            continue
+
+        target_index = index + 1
+        if target_index >= len(tokens):
+            continue
+
+        target_info = disambiguated[target_index]
+        if not is_described_target(target_info):
+            continue
+
+        if not has_afal_form(
+            target_info["raw_pattern"], target_info["lex"], forced_lemmas
+        ):
+            continue
+
+        matches.append(
+            (
+                index,
+                build_match(
+                    word,
+                    tokens[target_index][1],
+                    rule_id,
+                    get_akthar_explanation(),
+                    get_akthar_suggestion(),
+                    spans_for(token_spans, [index, target_index]),
+                ),
+            )
+        )
+
+    return matches
+
 
 def has_qabl_candidate(rules, tokens):
     spec = rules.get("qabl") or {}
@@ -337,7 +409,12 @@ def analyze(path, whitelist_path, text):
 
     has_trigger = any(word.endswith(rules["trigger_word"]) for _, word in tokens)
     has_lemma_rule = any(rules.get(key) for key in LEMMA_RULE_KEYS)
-    if not has_trigger and not has_lemma_rule and not has_qabl_candidate(rules, tokens):
+    if (
+        not has_trigger
+        and not has_lemma_rule
+        and not has_qabl_candidate(rules, tokens)
+        and not has_akthar_candidate(rules, tokens)
+    ):
         return build_response([])
 
     disambiguated = get_pos_and_pattern_in_context(tokens)
@@ -347,6 +424,7 @@ def analyze(path, whitelist_path, text):
     found.extend(find_tam_matches(rules, whitelist, tokens, disambiguated, token_spans))
     found.extend(find_qam_matches(rules, whitelist, tokens, disambiguated, token_spans))
     found.extend(find_qabl_matches(rules, whitelist, tokens, disambiguated, token_spans))
+    found.extend(find_akthar_matches(rules, whitelist, tokens, disambiguated, token_spans))
     found.sort(key=lambda pair: pair[0])
 
     return build_response([match for _, match in found])

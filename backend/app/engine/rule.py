@@ -1,6 +1,7 @@
 from app.engine.tags import (
     AL_DET,
     DESCRIPTOR_POS,
+    NON_DESCRIBED_POS,
     NO_PROCLITIC,
     NOUN,
     NON_GENITIVE_POS,
@@ -213,6 +214,31 @@ def get_qam_explanation():
 
 def get_qabl_suggestion():
     return "يمكن إسناد الفعل إلى فاعله مباشرة، أو حذف «من قبل»"
+
+
+def is_akthar_trigger(pos_pattern_info, trigger_lexes, proclitic):
+    if pos_pattern_info["lex"] not in trigger_lexes:
+        return False
+    return pos_pattern_info.get("prc0") == proclitic
+
+
+def is_akthar_blocked(disambiguated, index, blocking_lex):
+    if index == 0:
+        return False
+    previous = disambiguated[index - 1]
+    return previous["lex"] == blocking_lex and previous["pos"] == PREP
+
+
+def is_described_target(pos_pattern_info):
+    return pos_pattern_info["pos"] not in NON_DESCRIBED_POS
+
+
+def get_akthar_explanation():
+    return "تفضيل مُركَّب بدل صيغة أفعل"
+
+
+def get_akthar_suggestion():
+    return "يمكن استبدال «الأكثر/الأقلّ + صفة» بصيغة أفعل مباشرة"
 
 
 def get_qabl_explanation():

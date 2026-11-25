@@ -1,5 +1,6 @@
 from unittest.mock import patch, MagicMock
 from app.engine.analysis import get_pos_and_pattern_in_context
+from app.text.preprocessor import preprocess
 
 """ pos, pattern, lex check tests """
 
@@ -24,6 +25,7 @@ def test_extracts_pos_pattern_lex_for_single_word():
         {
             "pos": "noun",
             "pattern": "م123",
+            "raw_pattern": "مَ1ْ2َ3ٍ",
             "lex": "مصنع",
             "prc0": "",
             "prc1": "",
@@ -253,3 +255,17 @@ def test_the_inert_entry_matches_no_rule_predicate():
     assert describes_shakl(UNANALYSED) is False
     assert is_tam_trigger(UNANALYSED, "تم") is False
     assert is_qam_trigger([(0, "ـ")], 0, [UNANALYSED], ["قام"], ["نقم"]) is False
+
+
+def test_the_raw_pattern_keeps_the_diacritics_the_measure_test_needs():
+    """v6.1's guard. `classify_measure` reads kasra, sukun and shadda, and its
+    fallback is "I" — so the dediacritized `pattern` answers "measure I" for a
+    form VIII word and GH002 would flag everything. The raw pattern is the only
+    usable read, and nothing else in the pipeline consumes it."""
+    from app.engine.morphology import classify_measure
+
+    tokens = preprocess("المرض الأكثر انتشارا في المنطقة")
+    target = get_pos_and_pattern_in_context(tokens)[2]
+
+    assert classify_measure(target["pattern"]) == "I"
+    assert classify_measure(target["raw_pattern"]) == "VIII"

@@ -11,6 +11,7 @@ _analyzer = None
 UNANALYSED = {
     "pos": "",
     "pattern": "",
+    "raw_pattern": "",
     "lex": "",
     "prc0": "0",
     "prc1": "0",
@@ -46,6 +47,10 @@ def get_pos_and_pattern_in_context(tokens):
         top_analysis = entry.analyses[0].analysis
         pos = top_analysis.get("pos", "")
         pattern = dediac_ar(top_analysis.get("pattern", ""))
+        #: still diacritized. `classify_measure` reads the structural marks
+        #: (kasra, sukun, shadda) that dediacritization removes, so a rule that
+        #: needs a measure must use this and not `pattern`.
+        raw_pattern = top_analysis.get("pattern", "")
         lex = normalize_lookup_key(dediac_ar(top_analysis.get("lex", "")))
         prc2 = top_analysis.get("prc2", "")
         prc1 = top_analysis.get("prc1", "")
@@ -54,6 +59,7 @@ def get_pos_and_pattern_in_context(tokens):
             {
                 "pos": pos,
                 "pattern": pattern,
+                "raw_pattern": raw_pattern,
                 "lex": lex,
                 "prc0": prc0,
                 "prc1": prc1,

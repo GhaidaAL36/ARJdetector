@@ -36,7 +36,7 @@ RULES = reader(rules_path)
 WHITELIST = reader(whitelist_path)
 
 #: Findable in the raw token list, so the text decides whether the model runs.
-SURFACE_RULE_KEYS = ("trigger_word", "qabl")
+SURFACE_RULE_KEYS = ("trigger_word", "qabl", "akthar")
 
 QABL_SPEC = RULES["qabl"]
 
@@ -46,6 +46,7 @@ RULE_GATES = {
     "qam": ({"trigger_lex": ["قام"]}, ["الجو", "جميل"]),
     "trigger_word": ("بشكل", ["كتب", "بشكل", "رائع"]),
     "qabl": (QABL_SPEC, ["صدر", "من", "قبل", "الوزارة"]),
+    "akthar": (RULES["akthar"], ["الحل", "الأكثر", "وضوحا"]),
 }
 
 
@@ -66,6 +67,8 @@ def run_with(rules, words):
         "app.engine.rule_engine.find_qam_matches", return_value=[]
     ), patch(
         "app.engine.rule_engine.find_qabl_matches", return_value=[]
+    ), patch(
+        "app.engine.rule_engine.find_akthar_matches", return_value=[]
     ):
         analyze(rules_path, whitelist_path, " ".join(words))
     return disambiguator
